@@ -4,8 +4,52 @@ use petgraph::dot::{Config, Dot};
 use petgraph::graph::{DiGraph, Graph, NodeIndex};
 use petgraph::prelude::*;
 use std::collections::HashMap;
+use std::fmt;
 
-fn main() {
+#[derive(Debug, Copy, Clone)]
+struct FlowEdge {
+    demand: u32,
+    capacity: u32,
+    cost: f64,
+}
+
+impl FlowEdge {
+    fn new(demand: u32, capacity: u32, cost: f64) -> FlowEdge {
+        FlowEdge {
+            demand,
+            capacity,
+            cost,
+        }
+    }
+}
+
+impl fmt::Display for FlowEdge {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[{},{}] {}", self.demand, self.capacity, self.cost)
+    }
+}
+
+type FlowGraph = DiGraph<(), FlowEdge>;
+
+fn mock_flow_graph() -> FlowGraph {
+    let mut graph: FlowGraph = Graph::new();
+    let a = graph.add_node(());
+    let b = graph.add_node(());
+    let c = graph.add_node(());
+    graph.add_edge(a, b, FlowEdge::new(0, 0, 0.0));
+    graph.add_edge(a, c, FlowEdge::new(0, 0, 0.0));
+    graph.add_edge(b, c, FlowEdge::new(0, 0, 0.0));
+    graph
+}
+
+fn main() {}
+
+fn main2() {
+    let g = mock_flow_graph();
+    println!("{:?}", Dot::with_config(&g, &[Config::NodeIndexLabel]));
+}
+
+fn main_old() {
     println!("Hello, world!");
     // let graph = DiGraph::<i32, ()>::from_edges(&[(1, 2), (2, 3), (3, 4), (1, 4)]);
     // let mut graph = DiGraph::new();
