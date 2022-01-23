@@ -74,7 +74,82 @@ fn test_graph1() -> DiGraph<u8, ()> {
     graph
 }
 
+fn scenario1() {
+    let mut g = Graph::<(), ()>::new();
+    g.extend_with_edges(&[(0, 1), (1, 2), (1, 3), (3, 4)]);
+    println!("{:?}", Dot::with_config(&g, &[]));
+
+    println!("{}", g.node_count());
+    println!("{}", g.edge_count());
+}
+
+fn scenario2() {
+    let mut g = DiGraph::<u32, u32>::new();
+    let a = g.add_node(111);
+    let b = g.add_node(222);
+    let c = g.add_node(333);
+    let e1 = g.add_edge(a, b, 10);
+    let e1 = g.add_edge(a, b, 100);
+    let e2 = g.add_edge(a, c, 20);
+    println!("{:?}", Dot::with_config(&g, &[]));
+
+    // node -> edge
+    // by two nodes
+    println!("(a, b) in G?: {:?}", g.contains_edge(a, b));
+    println!("(a, b): {:?}", g.find_edge(a, b));
+
+    // by one nodes
+    // list of nodes
+    for v in g.neighbors_directed(a, Direction::Outgoing) {
+        println!("neighbor of a: {:?}", v);
+    }
+    // list of edges
+    for e in g.edges_directed(a, Direction::Outgoing) {
+        println!("outgoing edge of a: {:?}", e);
+    }
+
+    // edge -> node
+    println!("e1 = {:?}", g.edge_endpoints(e1));
+
+    let x = g.node_weight(a).unwrap();
+    println!("a={:?}", x);
+
+    println!("node itering");
+    for node in g.node_indices() {
+        println!(
+            "node {:?} {:?} {:?}",
+            node,
+            g.node_weight(node).unwrap(),
+            node.index()
+        );
+    }
+
+    // delete a
+    g.remove_node(a);
+
+    println!("c={:?}", c);
+    // should panic
+    // println!("{:?}", g.node_weight(c).unwrap());
+    println!("c={:?}", c.index());
+
+    // check nodes again
+    println!("node itering");
+    for node in g.node_indices() {
+        println!(
+            "node {:?} {:?} {:?}",
+            node,
+            g.node_weight(node).unwrap(),
+            node.index()
+        );
+    }
+}
+
 fn main() {
+    // scenario1();
+    scenario2();
+}
+
+fn main3() {
     let mut graph: DiGraph<u8, ()> = Graph::new();
     let v1 = graph.add_node(20);
     let v2 = graph.add_node(10);
