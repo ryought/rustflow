@@ -1,5 +1,6 @@
 use petgraph::algo::bellman_ford;
 use petgraph::algo::dijkstra;
+use petgraph::algo::toposort;
 use petgraph::dot::{Config, Dot};
 use petgraph::graph::{DiGraph, Graph, NodeIndex};
 use petgraph::prelude::*;
@@ -42,7 +43,64 @@ fn mock_flow_graph() -> FlowGraph {
     graph
 }
 
-fn main() {}
+fn show_toposort<'a>(g: &'a DiGraph<u8, ()>) {
+    // should pass reference of graph
+    match toposort(&g, None) {
+        Ok(order) => {
+            for node in order {
+                g.node_weight(node).map(|w| {
+                    println!("node:{:?} {:?}", node, w);
+                    w
+                });
+            }
+        }
+        Err(err) => {
+            let node = err.node_id();
+            g.node_weight(node).map(|w| {
+                println!("cycle node: {:?} {:?}", node, w);
+            });
+        }
+    };
+}
+
+fn test_graph1() -> DiGraph<u8, ()> {
+    let mut graph: DiGraph<u8, ()> = Graph::new();
+    let v1 = graph.add_node(20);
+    let v2 = graph.add_node(10);
+    let v3 = graph.add_node(30);
+    let e1 = graph.add_edge(v1, v2, ());
+    let e2 = graph.add_edge(v2, v3, ());
+    let e3 = graph.add_edge(v3, v1, ());
+    graph
+}
+
+fn main() {
+    let mut graph: DiGraph<u8, ()> = Graph::new();
+    let v1 = graph.add_node(20);
+    let v2 = graph.add_node(10);
+    let v3 = graph.add_node(30);
+    let e1 = graph.add_edge(v1, v2, ());
+    let e1 = graph.add_edge(v1, v3, ());
+    println!("{:?}", v1);
+    println!("{:?}", v2);
+    println!("{:?}", v3);
+    println!("{:?}", e1);
+    println!("{:?}", Dot::with_config(&graph, &[]));
+
+    // mapping
+    let g2 = graph.map(|_, vp| vp.clone() + 1, |_, ep| ep.clone());
+    println!("{:?}", Dot::with_config(&g2, &[]));
+
+    // removing
+    graph.remove_node(v1);
+    println!("{:?}", Dot::with_config(&graph, &[]));
+
+    show_toposort(&g2);
+
+    let g3 = test_graph1();
+    println!("{:?}", Dot::with_config(&g3, &[]));
+    show_toposort(&g3);
+}
 
 fn main2() {
     let g = mock_flow_graph();
