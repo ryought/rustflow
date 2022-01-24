@@ -300,7 +300,7 @@ fn pick_minimum_weight_edge(graph: &ResidueGraph, v: NodeIndex, w: NodeIndex) ->
         .edges_connecting(v, w)
         .min_by(|e1, e2| {
             let w1 = e1.weight().weight;
-            let w2 = e1.weight().weight;
+            let w2 = e2.weight().weight;
             w1.partial_cmp(&w2).unwrap()
         })
         .unwrap();
@@ -391,7 +391,7 @@ pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow
 pub fn min_cost_flow_from_zero<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow {
     // TODO check if graph is zero-demand
     // when non-zero demand graph
-    let mut flow = Flow::zero(graph);
+    let flow = Flow::zero(graph);
     min_cost_flow_from(graph, &flow)
 }
 
