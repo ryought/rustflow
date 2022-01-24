@@ -83,13 +83,23 @@ impl Flow {
     pub fn zero(graph: &FlowGraph) -> Flow {
         let mut hm = HashMap::new();
         for e in graph.edge_indices() {
-            // let w = graph.edge_weight(e).unwrap();
             hm.insert(e, 0);
         }
         Flow(hm)
     }
     pub fn from(hm: HashMap<EdgeIndex, u32>) -> Flow {
         Flow(hm)
+    }
+    pub fn from_fn(graph: &FlowGraph, f: fn(EdgeIndex) -> u32) -> Flow {
+        let mut hm = HashMap::new();
+        for e in graph.edge_indices() {
+            hm.insert(e, f(e));
+        }
+        Flow(hm)
+    }
+    pub fn is_valid(&self, graph: &FlowGraph) -> bool {
+        // TODO
+        true
     }
     pub fn get(&self, e: EdgeIndex) -> Option<u32> {
         self.0.get(&e).cloned()
@@ -112,7 +122,9 @@ pub fn mock_flow_network() -> FlowGraph {
     graph
 }
 
-/// Convert FlowGraph and Flow
+/// Convert FlowGraph with Flow into ResidueGraph.
+///
+/// FlowGraph and Flow
 /// v -> w
 ///  e = ([l,u],c), f
 ///
@@ -159,7 +171,8 @@ pub fn flow_to_residue(graph: &FlowGraph, flow: &Flow) -> ResidueGraph {
 pub fn test() {
     let g = mock_flow_network();
     draw(&g);
-    let f = Flow::zero(&g);
+    // let f = Flow::zero(&g);
+    let f = Flow::from_fn(&g, |_| 1);
     println!("{:?}", f);
 
     let rg = flow_to_residue(&g, &f);
