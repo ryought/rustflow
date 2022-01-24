@@ -252,6 +252,14 @@ fn node_list_to_edge_list(graph: &ResidueGraph, nodes: &[NodeIndex]) -> Vec<Edge
     edges
 }
 
+fn apply_residual_edges_to_flow(flow: &Flow, rg: &ResidueGraph, edges: &[EdgeIndex]) {
+    for edge in edges {
+        let ew = rg.edge_weight(*edge).unwrap();
+        println!("{:?} {:?}", edge, ew);
+        // convert back to the original edgeindex
+    }
+}
+
 /// create a new improved flow from current flow
 /// by upgrading along the negative weight cycle in the residual graph
 pub fn improve_flow(graph: &FlowGraph, flow: &Flow) {
@@ -263,7 +271,9 @@ pub fn improve_flow(graph: &FlowGraph, flow: &Flow) {
 
     match path {
         Some(nodes) => {
-            node_list_to_edge_list(&rg, &nodes);
+            let edges = node_list_to_edge_list(&rg, &nodes);
+            // apply these changes along the cycle to current flow
+            apply_residual_edges_to_flow(&flow, &rg, &edges);
         }
         None => {}
     };
