@@ -47,17 +47,37 @@ pub type FlowGraph = DiGraph<(), FlowEdge>;
 /// Edge attributes used in ResidueGraph
 #[derive(Debug, Default, Copy, Clone)]
 pub struct ResidueEdge {
+    /// The movable amount of the flow
     count: u32,
+    /// Cost of the unit change of this flow
     weight: f64,
+    /// Original edge index of the source graph
+    target: EdgeIndex,
+    /// +1 or -1
     direction: ResidueDirection,
 }
 
 impl ResidueEdge {
-    pub fn new(count: u32, weight: f64, direction: ResidueDirection) -> ResidueEdge {
+    pub fn new(
+        count: u32,
+        weight: f64,
+        target: EdgeIndex,
+        direction: ResidueDirection,
+    ) -> ResidueEdge {
         ResidueEdge {
             count,
             weight,
+            target,
             direction,
+        }
+    }
+    pub fn only_weight(weight: f64) -> ResidueEdge {
+        ResidueEdge {
+            weight,
+            // filled by default values
+            target: EdgeIndex::new(0),
+            count: 0,
+            direction: ResidueDirection::Up,
         }
     }
 }
@@ -79,29 +99,16 @@ impl PartialEq for ResidueEdge {
 impl std::ops::Add for ResidueEdge {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        ResidueEdge {
-            weight: self.weight + other.weight,
-            // filled by default values
-            count: 0,
-            direction: ResidueDirection::Up,
-        }
+        ResidueEdge::only_weight(self.weight + other.weight)
     }
 }
 
 impl petgraph::algo::FloatMeasure for ResidueEdge {
     fn zero() -> Self {
-        ResidueEdge {
-            weight: 0.,
-            count: 0,
-            direction: ResidueDirection::Up,
-        }
+        ResidueEdge::only_weight(0.)
     }
     fn infinite() -> Self {
-        ResidueEdge {
-            weight: 1. / 0.,
-            count: 0,
-            direction: ResidueDirection::Up,
-        }
+        ResidueEdge::only_weight(1. / 0.)
     }
 }
 
@@ -200,12 +207,12 @@ pub fn flow_to_residue(graph: &FlowGraph, flow: &Flow) -> ResidueGraph {
         let up_edge = (
             v,
             w,
-            ResidueEdge::new(ew.capacity - f, ew.cost, ResidueDirection::Up),
+            ResidueEdge::new(ew.capacity - f, ew.cost, e, ResidueDirection::Up),
         );
         let down_edge = (
             w,
             v,
-            ResidueEdge::new(f - ew.demand, -ew.cost, ResidueDirection::Down),
+            ResidueEdge::new(f - ew.demand, -ew.cost, e, ResidueDirection::Down),
         );
 
         let mut edges = Vec::new();
