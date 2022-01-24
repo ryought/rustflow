@@ -16,15 +16,21 @@ use std::fmt;
 /// - capacity u
 /// - cost per flow c
 /// [l, u], c
+///
+/// it can contain additional information in T.
 #[derive(Debug, Copy, Clone)]
-pub struct FlowEdge {
+pub struct FlowEdgeRaw<T> {
     /// demand (lower limit of flow) of the edge l(e)
     demand: u32,
     /// capacity (upper limit of flow) of the edge u(e)
     capacity: u32,
     /// cost per unit flow
     cost: f64,
+    /// auxiliary informations
+    info: T,
 }
+
+pub type FlowEdge = FlowEdgeRaw<()>;
 
 impl FlowEdge {
     pub fn new(demand: u32, capacity: u32, cost: f64) -> FlowEdge {
@@ -32,6 +38,7 @@ impl FlowEdge {
             demand,
             capacity,
             cost,
+            info: (),
         }
     }
 }
@@ -344,6 +351,26 @@ pub fn min_cost_flow(graph: &FlowGraph) -> Flow {
 
     flow
 }
+
+//
+// finding init valid flow
+//
+/// To determine all-zero flow is valid or not
+/// we should know whether the given graph is demand-less
+/// that is all demands of the edges are 0.
+fn is_zero_demand_flow_graph(graph: &FlowGraph) -> bool {
+    true
+}
+
+/*
+fn to_zero_demand_graph(graph: &FlowGraph) -> FlowGraph {
+    let mut zdg: FlowGraph = Graph::new();
+}
+*/
+
+//
+// utils
+//
 
 pub fn test() {
     let g = mock_flow_network();
