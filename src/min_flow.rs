@@ -1,7 +1,9 @@
+use petgraph::algo::find_negative_cycle;
 use petgraph::dot::{Config, Dot};
 use petgraph::graph::{DiGraph, Graph, NodeIndex};
 use petgraph::prelude::*;
 use petgraph::EdgeType;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -42,7 +44,7 @@ pub type FlowGraph = DiGraph<(), FlowEdge>;
 // Residue graph definitions
 
 /// Edge attributes used in ResidueGraph
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct ResidueEdge {
     count: u32,
     weight: f64,
@@ -59,6 +61,49 @@ impl ResidueEdge {
     }
 }
 
+// TODO implement FloatMeasure for ResidueEdge
+// PartialOrd, Add<Self, Self>, FloatMeasure(zero, infinite)
+impl PartialOrd for ResidueEdge {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.weight.partial_cmp(&other.weight)
+    }
+}
+
+impl PartialEq for ResidueEdge {
+    fn eq(&self, other: &Self) -> bool {
+        self.weight == other.weight
+    }
+}
+
+impl std::ops::Add for ResidueEdge {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        ResidueEdge {
+            weight: self.weight + other.weight,
+            // filled by default values
+            count: 0,
+            direction: ResidueDirection::Up,
+        }
+    }
+}
+
+impl petgraph::algo::FloatMeasure for ResidueEdge {
+    fn zero() -> Self {
+        ResidueEdge {
+            weight: 0.,
+            count: 0,
+            direction: ResidueDirection::Up,
+        }
+    }
+    fn infinite() -> Self {
+        ResidueEdge {
+            weight: 1. / 0.,
+            count: 0,
+            direction: ResidueDirection::Up,
+        }
+    }
+}
+
 /// Residue direction enum
 /// residue edge has two types
 /// - Up edge: increase(+1) of flow
@@ -67,6 +112,12 @@ impl ResidueEdge {
 pub enum ResidueDirection {
     Up,
     Down,
+}
+
+impl Default for ResidueDirection {
+    fn default() -> Self {
+        ResidueDirection::Up
+    }
 }
 
 /// ResidueGraph definition
@@ -168,6 +219,19 @@ pub fn flow_to_residue(graph: &FlowGraph, flow: &Flow) -> ResidueGraph {
     rg
 }
 
+/// create a new improved flow from current flow
+/// by upgrading along the negative weight cycle in the residual graph
+pub fn improve_flow(graph: &FlowGraph, flow: &Flow) {
+    let rg = flow_to_residue(graph, flow);
+    draw(&rg);
+
+    // find negative weight cycles
+    let path = find_negative_cycle(&rg, NodeIndex::new(0));
+    println!("{:?}", path);
+
+    // TODO how to determine the edge list from the node list?
+}
+
 pub fn test() {
     let g = mock_flow_network();
     draw(&g);
@@ -175,8 +239,8 @@ pub fn test() {
     let f = Flow::from_fn(&g, |_| 1);
     println!("{:?}", f);
 
-    let rg = flow_to_residue(&g, &f);
-    draw(&rg);
+    // let rg = flow_to_residue(&g, &f);
+    improve_flow(&g, &f);
 }
 
 pub fn draw<'a, N: 'a, E: 'a, Ty, Ix>(graph: &'a Graph<N, E, Ty, Ix>)
