@@ -408,12 +408,21 @@ pub type ZeroDemandFlowGraph = DiGraph<(), ZeroDemandFlowEdge>;
 /// we should know whether the given graph is demand-less
 /// that is all demands of the edges are 0.
 fn is_zero_demand_flow_graph<T>(graph: &FlowGraphRaw<T>) -> bool {
-    // TODO
-    true
+    graph.edge_indices().all(|e| {
+        let ew = graph.edge_weight(e).unwrap();
+        ew.demand == 0
+    })
 }
+
+/// sum of edge demand
 fn sum_of_demand<T>(graph: &FlowGraphRaw<T>) -> u32 {
-    // TODO
-    0
+    graph
+        .edge_indices()
+        .map(|e| {
+            let ew = graph.edge_weight(e).unwrap();
+            ew.demand
+        })
+        .sum()
 }
 
 fn to_zero_demand_graph<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> ZeroDemandFlowGraph {
@@ -454,12 +463,21 @@ fn to_zero_demand_graph<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> ZeroDema
 /// - type-A edge $ea$
 /// - type-B edge $eb$
 /// and the sum of the flows of the two is the flow of original edge $e$.
-fn zero_demand_flow_to_original_flow(zd_flow: &Flow, zd_graph: &ZeroDemandFlowGraph) {
+fn zero_demand_flow_to_original_flow(zd_flow: &Flow, zd_graph: &ZeroDemandFlowGraph) -> Flow {
     let mut flow = Flow::empty();
     for e in zd_graph.edge_indices() {
+        let ew = zd_graph.edge_weight(e).unwrap();
         let zd_f = zd_flow.get(e).unwrap();
-        // TODO calculate the sum
+        let original_edge = ew.info.origin;
+
+        if flow.has(original_edge) {
+            let f = flow.get(original_edge).unwrap();
+            flow.set(original_edge, f + zd_f);
+        } else {
+            flow.set(original_edge, zd_f);
+        }
     }
+    flow
 }
 
 pub fn find_initial_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow> {
@@ -471,8 +489,8 @@ pub fn find_initial_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<
         None
     } else {
         // valid initial flow exists!
-        // TODO
-        None
+        let flow = zero_demand_flow_to_original_flow(&zd_flow, &zdg);
+        Some(flow)
     }
 }
 
