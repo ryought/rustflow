@@ -64,7 +64,7 @@ impl ResidueEdge {
 /// - Up edge: increase(+1) of flow
 /// - Down edge: decrease(-1) of flow
 #[derive(Debug, Copy, Clone)]
-enum ResidueDirection {
+pub enum ResidueDirection {
     Up,
     Down,
 }
@@ -91,6 +91,12 @@ impl Flow {
     pub fn from(hm: HashMap<EdgeIndex, u32>) -> Flow {
         Flow(hm)
     }
+    pub fn get(&self, e: EdgeIndex) -> Option<u32> {
+        self.0.get(&e).cloned()
+    }
+    pub fn set(&mut self, e: EdgeIndex, v: u32) {
+        self.0.insert(e, v);
+    }
 }
 
 /// mock graph generation functions
@@ -107,18 +113,45 @@ pub fn mock_flow_network() -> FlowGraph {
 }
 
 /// Convert FlowGraph and Flow
+/// v -> w
 ///  e = ([l,u],c), f
 ///
 /// into
 ///
 /// ResidueGraph
+/// v -> w
 ///  e1 = (u-f, +c) if u-f>0
+/// w -> v
 ///  e2 = (f-l, -c) if f-l>0
 pub fn flow_to_residue(graph: &FlowGraph, flow: &Flow) -> ResidueGraph {
     let mut rg: ResidueGraph = Graph::new();
-    // TODO how to convert with same node id?
-    for node in graph.node_indices() {
-        rg.add_node(());
+
+    // create two edges (Up and Down) for each edge
+    for e in graph.edge_indices() {
+        let f = flow.get(e).unwrap();
+        let ew = graph.edge_weight(e).unwrap();
+        let (v, w) = graph.edge_endpoints(e).unwrap();
+        println!("{:?} {:?} {}", e, ew, f);
+
+        let up_edge = (
+            v,
+            w,
+            ResidueEdge::new(ew.capacity - f, ew.cost, ResidueDirection::Up),
+        );
+        let down_edge = (
+            w,
+            v,
+            ResidueEdge::new(f - ew.demand, -ew.cost, ResidueDirection::Down),
+        );
+
+        let mut edges = Vec::new();
+        if up_edge.2.count > 0 {
+            edges.push(up_edge);
+        }
+        if down_edge.2.count > 0 {
+            edges.push(down_edge);
+        }
+        rg.extend_with_edges(&edges);
     }
     rg
 }
@@ -128,6 +161,9 @@ pub fn test() {
     draw(&g);
     let f = Flow::zero(&g);
     println!("{:?}", f);
+
+    let rg = flow_to_residue(&g, &f);
+    draw(&rg);
 }
 
 pub fn draw<'a, N: 'a, E: 'a, Ty, Ix>(graph: &'a Graph<N, E, Ty, Ix>)
