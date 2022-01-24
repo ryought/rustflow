@@ -135,7 +135,7 @@ pub type ResidueGraph = DiGraph<(), ResidueEdge>;
 ///
 /// Flow f is a mapping of u32 f(e) to each edge e
 /// TODO how to use EdgeId as a concrete type?
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Flow(HashMap<EdgeIndex, u32>);
 
 impl Flow {
@@ -259,17 +259,40 @@ fn node_list_to_edge_list(graph: &ResidueGraph, nodes: &[NodeIndex]) -> Vec<Edge
     edges
 }
 
-fn apply_residual_edges_to_flow(flow: &Flow, rg: &ResidueGraph, edges: &[EdgeIndex]) {
+fn apply_residual_edges_to_flow(flow: &Flow, rg: &ResidueGraph, edges: &[EdgeIndex]) -> Flow {
+    let mut new_flow = flow.clone();
+
+    // determine flow_change_amount
+    // that is the minimum of ResidueEdge.count
+    let flow_change_amount = edges
+        .iter()
+        .map(|&e| {
+            let ew = rg.edge_weight(e).unwrap();
+            ew.count
+        })
+        .min()
+        .unwrap();
+
     for edge in edges {
         let ew = rg.edge_weight(*edge).unwrap();
         println!("{:?} {:?}", edge, ew);
         // convert back to the original edgeindex
+        let original_edge = ew.target;
+        let original_edge_flow = flow.get(original_edge).unwrap();
+
+        let new_edge_flow = match ew.direction {
+            ResidueDirection::Up => original_edge_flow + flow_change_amount,
+            ResidueDirection::Down => original_edge_flow - flow_change_amount,
+        };
+        new_flow.set(original_edge, new_edge_flow);
     }
+
+    new_flow
 }
 
 /// create a new improved flow from current flow
 /// by upgrading along the negative weight cycle in the residual graph
-pub fn improve_flow(graph: &FlowGraph, flow: &Flow) {
+pub fn improve_flow(graph: &FlowGraph, flow: &Flow) -> Option<Flow> {
     let rg = flow_to_residue(graph, flow);
     draw(&rg);
 
@@ -280,12 +303,13 @@ pub fn improve_flow(graph: &FlowGraph, flow: &Flow) {
         Some(nodes) => {
             let edges = node_list_to_edge_list(&rg, &nodes);
             // apply these changes along the cycle to current flow
-            apply_residual_edges_to_flow(&flow, &rg, &edges);
+            let new_flow = apply_residual_edges_to_flow(&flow, &rg, &edges);
+            println!("{:?}", new_flow);
         }
         None => {}
     };
 
-    // TODO how to determine the edge list from the node list?
+    None
 }
 
 pub fn test() {
