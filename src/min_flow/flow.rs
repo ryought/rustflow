@@ -59,7 +59,7 @@ impl Flow {
         let hm = HashMap::new();
         Flow(hm)
     }
-    pub fn zero<T>(graph: &FlowGraphRaw<T>) -> Flow {
+    pub fn zero<N, E>(graph: &DiGraph<N, E>) -> Flow {
         let mut hm = HashMap::new();
         for e in graph.edge_indices() {
             hm.insert(e, 0);
@@ -69,14 +69,14 @@ impl Flow {
     pub fn from(hm: HashMap<EdgeIndex, u32>) -> Flow {
         Flow(hm)
     }
-    pub fn from_fn<T>(graph: &FlowGraphRaw<T>, f: fn(EdgeIndex) -> u32) -> Flow {
+    pub fn from_fn<N, E>(graph: &DiGraph<N, E>, f: fn(EdgeIndex) -> u32) -> Flow {
         let mut hm = HashMap::new();
         for e in graph.edge_indices() {
             hm.insert(e, f(e));
         }
         Flow(hm)
     }
-    pub fn is_valid<T>(&self, _graph: &FlowGraphRaw<T>) -> bool {
+    pub fn is_valid<N, E>(&self, _graph: &DiGraph<N, E>) -> bool {
         // TODO
         true
     }
@@ -89,15 +89,27 @@ impl Flow {
     pub fn has(&self, e: EdgeIndex) -> bool {
         self.0.contains_key(&e)
     }
-    pub fn total_cost<T>(&self, graph: &FlowGraphRaw<T>) -> f64 {
+    pub fn total_cost<N, E: EdgeCost>(&self, graph: &DiGraph<N, E>) -> f64 {
         graph
             .edge_indices()
             .map(|e| {
                 let ew = graph.edge_weight(e).unwrap();
-                let c = ew.cost;
-                let f = self.get(e).unwrap() as f64;
-                c * f
+                let f = self.get(e).unwrap();
+                ew.cost(f)
             })
             .sum()
+    }
+}
+
+///
+/// cost trait
+///
+pub trait EdgeCost {
+    fn cost(&self, flow: u32) -> f64;
+}
+
+impl<T> EdgeCost for FlowEdgeRaw<T> {
+    fn cost(&self, flow: u32) -> f64 {
+        self.cost * flow as f64
     }
 }
