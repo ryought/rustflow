@@ -169,6 +169,17 @@ impl Flow {
     pub fn set(&mut self, e: EdgeIndex, v: u32) {
         self.0.insert(e, v);
     }
+    pub fn total_cost(&self, graph: &FlowGraph) -> f64 {
+        graph
+            .edge_indices()
+            .map(|e| {
+                let ew = graph.edge_weight(e).unwrap();
+                let c = ew.cost;
+                let f = self.get(e).unwrap() as f64;
+                c * f
+            })
+            .sum()
+    }
 }
 
 /// mock graph generation functions
@@ -319,7 +330,7 @@ pub fn min_cost_flow(graph: &FlowGraph) -> Flow {
     let mut flow = Flow::zero(graph);
 
     loop {
-        println!("current flow: {:?}", flow);
+        println!("current flow: {:?} {}", flow, flow.total_cost(graph));
         match improve_flow(graph, &flow) {
             Some(new_flow) => {
                 flow = new_flow;
