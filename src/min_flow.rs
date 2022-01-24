@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use petgraph::algo::find_negative_cycle;
 use petgraph::dot::{Config, Dot};
 use petgraph::graph::{DiGraph, Graph, NodeIndex};
@@ -219,6 +220,38 @@ pub fn flow_to_residue(graph: &FlowGraph, flow: &Flow) -> ResidueGraph {
     rg
 }
 
+fn pick_minimum_weight_edge(graph: &ResidueGraph, v: NodeIndex, w: NodeIndex) -> EdgeIndex {
+    let er = graph
+        .edges_connecting(v, w)
+        .min_by(|e1, e2| {
+            let w1 = e1.weight().weight;
+            let w2 = e1.weight().weight;
+            w1.partial_cmp(&w2).unwrap()
+        })
+        .unwrap();
+    let e = er.id();
+    println!("{:?} {:?} {:?}", v, w, e);
+    e
+}
+
+/// Convert a cycle as nodes into as edges,
+/// by choosing the minimum weight edge if there are parallel edges
+fn node_list_to_edge_list(graph: &ResidueGraph, nodes: &[NodeIndex]) -> Vec<EdgeIndex> {
+    let mut edges = Vec::new();
+
+    // (1) nodes[i] and nodes[i+1] from i=0..n-1
+    for (v, w) in nodes.iter().tuple_windows() {
+        let edge = pick_minimum_weight_edge(graph, *v, *w);
+        edges.push(edge);
+    }
+
+    // (2) tail and head, node[n-1] and node[0]
+    let edge = pick_minimum_weight_edge(graph, nodes[nodes.len() - 1], nodes[0]);
+    edges.push(edge);
+
+    edges
+}
+
 /// create a new improved flow from current flow
 /// by upgrading along the negative weight cycle in the residual graph
 pub fn improve_flow(graph: &FlowGraph, flow: &Flow) {
@@ -227,7 +260,13 @@ pub fn improve_flow(graph: &FlowGraph, flow: &Flow) {
 
     // find negative weight cycles
     let path = find_negative_cycle(&rg, NodeIndex::new(0));
-    println!("{:?}", path);
+
+    match path {
+        Some(nodes) => {
+            node_list_to_edge_list(&rg, &nodes);
+        }
+        None => {}
+    };
 
     // TODO how to determine the edge list from the node list?
 }
