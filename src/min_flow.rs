@@ -4,14 +4,17 @@ pub mod residue;
 pub mod utils;
 pub mod zero_demand;
 
-use petgraph::graph::{DiGraph, Graph, NodeIndex};
-use petgraph::prelude::*;
-use std::fmt;
-
 use flow::{Flow, FlowGraphRaw};
 use residue::improve_flow;
 use zero_demand::{find_initial_flow, is_zero_demand_flow_graph};
 
+//
+// public functions
+//
+
+///
+/// Find minimum cost flow on the FlowGraph
+///
 pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow> {
     let init_flow = find_initial_flow(graph);
     match init_flow {
@@ -20,13 +23,23 @@ pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow
     }
 }
 
-pub fn min_cost_flow_from_zero<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow {
+//
+// internal functions
+//
+
+///
+/// Find minimum cost flow of the special FlowGraph, whose demand is always zero.
+///
+fn min_cost_flow_from_zero<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow {
     assert!(is_zero_demand_flow_graph(&graph));
     let flow = Flow::zero(graph);
     min_cost_flow_from(graph, &flow)
 }
 
-pub fn min_cost_flow_from<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, init_flow: &Flow) -> Flow {
+///
+/// Find minimum cost by starting from the specified flow values.
+///
+fn min_cost_flow_from<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, init_flow: &Flow) -> Flow {
     let mut flow = init_flow.clone();
     loop {
         println!("current flow: {:?} {}", flow, flow.total_cost(graph));

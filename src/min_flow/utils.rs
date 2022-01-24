@@ -3,9 +3,8 @@
 //!
 use super::mocks;
 use super::{find_initial_flow, min_cost_flow};
-use petgraph::dot::{Config, Dot};
+use petgraph::dot::Dot;
 use petgraph::graph::Graph;
-use petgraph::prelude::*;
 use petgraph::EdgeType;
 
 pub fn test() {

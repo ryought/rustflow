@@ -77,7 +77,7 @@ impl Flow {
         }
         Flow(hm)
     }
-    pub fn is_valid<T>(&self, graph: &FlowGraphRaw<T>) -> bool {
+    pub fn is_valid<T>(&self, _graph: &FlowGraphRaw<T>) -> bool {
         // TODO
         true
     }
