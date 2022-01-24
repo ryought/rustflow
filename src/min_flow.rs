@@ -1,6 +1,8 @@
+pub mod mocks;
+pub mod utils;
+
 use itertools::Itertools;
 use petgraph::algo::find_negative_cycle;
-use petgraph::dot::{Config, Dot};
 use petgraph::graph::{DiGraph, Graph, NodeIndex};
 use petgraph::prelude::*;
 use petgraph::EdgeType;
@@ -197,59 +199,6 @@ impl Flow {
     }
 }
 
-/// mock graph generation functions
-pub fn mock_flow_network() -> FlowGraph {
-    let mut graph: FlowGraph = Graph::new();
-    let a = graph.add_node(());
-    let b = graph.add_node(());
-    let c = graph.add_node(());
-    let e1 = graph.add_edge(a, b, FlowEdge::new(0, 10, -1.0));
-    let e2 = graph.add_edge(b, c, FlowEdge::new(0, 10, -2.0));
-    let e3 = graph.add_edge(c, a, FlowEdge::new(0, 10, -2.0));
-    let f = graph.edge_weight(e1).unwrap();
-    graph
-}
-
-/// mock network cited from Genome-scale algorithm design p48
-pub fn mock_flow_network2() -> FlowGraph {
-    let mut graph: FlowGraph = Graph::new();
-    let s = graph.add_node(());
-    let a = graph.add_node(());
-    let b = graph.add_node(());
-    let c = graph.add_node(());
-    let d = graph.add_node(());
-    let e = graph.add_node(());
-    let f = graph.add_node(());
-    let t = graph.add_node(());
-    let INF = 100000;
-    graph.add_edge(s, a, FlowEdge::new(0, INF, 0.0));
-    graph.add_edge(a, b, FlowEdge::new(2, 4, 2.0));
-    graph.add_edge(a, d, FlowEdge::new(9, 13, 1.0));
-    graph.add_edge(b, c, FlowEdge::new(2, 3, 2.0));
-    graph.add_edge(d, c, FlowEdge::new(0, 6, 1.0));
-    graph.add_edge(c, t, FlowEdge::new(4, 8, 1.0));
-    graph.add_edge(d, f, FlowEdge::new(0, 10, 3.0));
-    graph.add_edge(s, e, FlowEdge::new(0, 6, 1.0));
-    graph.add_edge(e, f, FlowEdge::new(0, 5, 1.0));
-    graph.add_edge(f, t, FlowEdge::new(7, 13, 3.0));
-    graph.add_edge(t, s, FlowEdge::new(17, 17, 0.0));
-    graph
-}
-
-pub fn mock_flow_network3() -> FlowGraph {
-    let mut graph: FlowGraph = Graph::new();
-    let a = graph.add_node(());
-    let b = graph.add_node(());
-    let c = graph.add_node(());
-    let d = graph.add_node(());
-    graph.add_edge(a, b, FlowEdge::new(0, 2, 1.0));
-    graph.add_edge(a, c, FlowEdge::new(0, 2, -2.0));
-    graph.add_edge(b, d, FlowEdge::new(0, 2, 3.0));
-    graph.add_edge(c, d, FlowEdge::new(0, 1, 4.0));
-    graph.add_edge(d, a, FlowEdge::new(2, 2, 0.0));
-    graph
-}
-
 /// Convert FlowGraph with Flow into ResidueGraph.
 ///
 /// FlowGraph and Flow
@@ -363,7 +312,7 @@ fn apply_residual_edges_to_flow(flow: &Flow, rg: &ResidueGraph, edges: &[EdgeInd
 pub fn improve_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow) -> Option<Flow> {
     let rg = flow_to_residue(graph, flow);
     println!("improve_flow!");
-    draw(&rg);
+    utils::draw(&rg);
 
     // find negative weight cycles
     let path = find_negative_cycle(&rg, NodeIndex::new(0));
@@ -529,7 +478,7 @@ fn zero_demand_flow_to_original_flow(zd_flow: &Flow, zd_graph: &ZeroDemandFlowGr
 
 pub fn find_initial_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow> {
     let zdg = to_zero_demand_graph(graph);
-    draw(&zdg);
+    utils::draw(&zdg);
     let zd_flow = min_cost_flow_from_zero(&zdg);
 
     println!("sum_of_demand={:?}", sum_of_demand(&graph));
@@ -542,31 +491,3 @@ pub fn find_initial_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<
         Some(flow)
     }
 }
-
-//
-// utils
-//
-
-pub fn test() {
-    // let g = mock_flow_network3();
-    let g = mock_flow_network2();
-    draw(&g);
-
-    let f = find_initial_flow(&g);
-    println!("initia_flow={:?}", f);
-
-    let f = min_cost_flow(&g);
-    println!("{:?}", f);
-}
-
-pub fn draw<'a, N: 'a, E: 'a, Ty, Ix>(graph: &'a Graph<N, E, Ty, Ix>)
-where
-    E: std::fmt::Debug,
-    N: std::fmt::Debug,
-    Ty: EdgeType,
-    Ix: petgraph::graph::IndexType,
-{
-    println!("{:?}", Dot::with_config(&graph, &[]));
-}
-
-// pub fn draw_with_flow
