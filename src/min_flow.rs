@@ -18,8 +18,11 @@ use std::fmt;
 /// [l, u], c
 #[derive(Debug, Copy, Clone)]
 pub struct FlowEdge {
+    /// demand (lower limit of flow) of the edge l(e)
     demand: u32,
+    /// capacity (upper limit of flow) of the edge u(e)
     capacity: u32,
+    /// cost per unit flow
     cost: f64,
 }
 
@@ -294,6 +297,7 @@ fn apply_residual_edges_to_flow(flow: &Flow, rg: &ResidueGraph, edges: &[EdgeInd
 /// by upgrading along the negative weight cycle in the residual graph
 pub fn improve_flow(graph: &FlowGraph, flow: &Flow) -> Option<Flow> {
     let rg = flow_to_residue(graph, flow);
+    println!("improve_flow!");
     draw(&rg);
 
     // find negative weight cycles
@@ -305,22 +309,37 @@ pub fn improve_flow(graph: &FlowGraph, flow: &Flow) -> Option<Flow> {
             // apply these changes along the cycle to current flow
             let new_flow = apply_residual_edges_to_flow(&flow, &rg, &edges);
             println!("{:?}", new_flow);
+            Some(new_flow)
         }
-        None => {}
-    };
+        None => None,
+    }
+}
 
-    None
+pub fn min_cost_flow(graph: &FlowGraph) -> Flow {
+    let mut flow = Flow::zero(graph);
+
+    loop {
+        println!("current flow: {:?}", flow);
+        match improve_flow(graph, &flow) {
+            Some(new_flow) => {
+                flow = new_flow;
+                continue;
+            }
+            None => {
+                break;
+            }
+        };
+    }
+
+    flow
 }
 
 pub fn test() {
     let g = mock_flow_network();
     draw(&g);
-    // let f = Flow::zero(&g);
-    let f = Flow::from_fn(&g, |_| 1);
-    println!("{:?}", f);
 
-    // let rg = flow_to_residue(&g, &f);
-    improve_flow(&g, &f);
+    let f = min_cost_flow(&g);
+    println!("{:?}", f);
 }
 
 pub fn draw<'a, N: 'a, E: 'a, Ty, Ix>(graph: &'a Graph<N, E, Ty, Ix>)
