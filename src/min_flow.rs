@@ -150,6 +150,10 @@ pub type ResidueGraph = DiGraph<(), ResidueEdge>;
 pub struct Flow(HashMap<EdgeIndex, u32>);
 
 impl Flow {
+    pub fn empty() -> Flow {
+        let hm = HashMap::new();
+        Flow(hm)
+    }
     pub fn zero<T>(graph: &FlowGraphRaw<T>) -> Flow {
         let mut hm = HashMap::new();
         for e in graph.edge_indices() {
@@ -176,6 +180,9 @@ impl Flow {
     }
     pub fn set(&mut self, e: EdgeIndex, v: u32) {
         self.0.insert(e, v);
+    }
+    pub fn has(&self, e: EdgeIndex) -> bool {
+        self.0.contains_key(&e)
     }
     pub fn total_cost<T>(&self, graph: &FlowGraphRaw<T>) -> f64 {
         graph
@@ -335,6 +342,12 @@ pub fn improve_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow) ->
 }
 
 pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow {
+    // TODO searching from non-zero init flow
+    // when non-zero demand graph
+    min_cost_flow_from_zero(graph)
+}
+
+pub fn min_cost_flow_from_zero<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow {
     let mut flow = Flow::zero(graph);
 
     loop {
@@ -398,11 +411,15 @@ fn is_zero_demand_flow_graph<T>(graph: &FlowGraphRaw<T>) -> bool {
     // TODO
     true
 }
+fn sum_of_demand<T>(graph: &FlowGraphRaw<T>) -> u32 {
+    // TODO
+    0
+}
 
-fn to_zero_demand_graph(graph: &FlowGraph) -> ZeroDemandFlowGraph {
+fn to_zero_demand_graph<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> ZeroDemandFlowGraph {
     let mut zdg: ZeroDemandFlowGraph = Graph::new();
 
-    // create two edges (Up and Down) for each edge
+    // create two edges (type-A and type-B) for each edge
     for e in graph.edge_indices() {
         let ew = graph.edge_weight(e).unwrap();
         let (v, w) = graph.edge_endpoints(e).unwrap();
@@ -428,6 +445,35 @@ fn to_zero_demand_graph(graph: &FlowGraph) -> ZeroDemandFlowGraph {
         ]);
     }
     zdg
+}
+
+/// Given the converted zero-demand graph and a flow on it (zd_graph, zd_flow),
+/// this calculates the original flow on the original graph.
+/// For each edge $e$ in the original graph,
+/// there is
+/// - type-A edge $ea$
+/// - type-B edge $eb$
+/// and the sum of the flows of the two is the flow of original edge $e$.
+fn zero_demand_flow_to_original_flow(zd_flow: &Flow, zd_graph: &ZeroDemandFlowGraph) {
+    let mut flow = Flow::empty();
+    for e in zd_graph.edge_indices() {
+        let zd_f = zd_flow.get(e).unwrap();
+        // TODO calculate the sum
+    }
+}
+
+pub fn find_initial_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow> {
+    let zdg = to_zero_demand_graph(graph);
+    let zd_flow = min_cost_flow_from_zero(&zdg);
+
+    if zd_flow.total_cost(&zdg) > sum_of_demand(&graph) as f64 {
+        // valid flow does not exists
+        None
+    } else {
+        // valid initial flow exists!
+        // TODO
+        None
+    }
 }
 
 //
