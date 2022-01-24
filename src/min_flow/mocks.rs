@@ -1,4 +1,4 @@
-use super::{FlowEdge, FlowGraph};
+use super::flow::{FlowEdge, FlowGraph};
 use petgraph::graph::Graph;
 
 /// mock graph generation functions
