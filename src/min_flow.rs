@@ -210,6 +210,46 @@ pub fn mock_flow_network() -> FlowGraph {
     graph
 }
 
+/// mock network cited from Genome-scale algorithm design p48
+pub fn mock_flow_network2() -> FlowGraph {
+    let mut graph: FlowGraph = Graph::new();
+    let s = graph.add_node(());
+    let a = graph.add_node(());
+    let b = graph.add_node(());
+    let c = graph.add_node(());
+    let d = graph.add_node(());
+    let e = graph.add_node(());
+    let f = graph.add_node(());
+    let t = graph.add_node(());
+    let INF = 100000;
+    graph.add_edge(s, a, FlowEdge::new(0, INF, 0.0));
+    graph.add_edge(a, b, FlowEdge::new(2, 4, 2.0));
+    graph.add_edge(a, d, FlowEdge::new(9, 13, 1.0));
+    graph.add_edge(b, c, FlowEdge::new(2, 3, 2.0));
+    graph.add_edge(d, c, FlowEdge::new(0, 6, 1.0));
+    graph.add_edge(c, t, FlowEdge::new(4, 8, 1.0));
+    graph.add_edge(d, f, FlowEdge::new(0, 10, 3.0));
+    graph.add_edge(s, e, FlowEdge::new(0, 6, 1.0));
+    graph.add_edge(e, f, FlowEdge::new(0, 5, 1.0));
+    graph.add_edge(f, t, FlowEdge::new(7, 13, 3.0));
+    graph.add_edge(t, s, FlowEdge::new(17, 17, 0.0));
+    graph
+}
+
+pub fn mock_flow_network3() -> FlowGraph {
+    let mut graph: FlowGraph = Graph::new();
+    let a = graph.add_node(());
+    let b = graph.add_node(());
+    let c = graph.add_node(());
+    let d = graph.add_node(());
+    graph.add_edge(a, b, FlowEdge::new(0, 2, 1.0));
+    graph.add_edge(a, c, FlowEdge::new(0, 2, -2.0));
+    graph.add_edge(b, d, FlowEdge::new(0, 2, 3.0));
+    graph.add_edge(c, d, FlowEdge::new(0, 1, 4.0));
+    graph.add_edge(d, a, FlowEdge::new(2, 2, 0.0));
+    graph
+}
+
 /// Convert FlowGraph with Flow into ResidueGraph.
 ///
 /// FlowGraph and Flow
@@ -233,23 +273,22 @@ pub fn flow_to_residue<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow)
         let (v, w) = graph.edge_endpoints(e).unwrap();
         println!("{:?} {:?} {}", e, ew, f);
 
-        let up_edge = (
-            v,
-            w,
-            ResidueEdge::new(ew.capacity - f, ew.cost, e, ResidueDirection::Up),
-        );
-        let down_edge = (
-            w,
-            v,
-            ResidueEdge::new(f - ew.demand, -ew.cost, e, ResidueDirection::Down),
-        );
-
         let mut edges = Vec::new();
-        if up_edge.2.count > 0 {
-            edges.push(up_edge);
+        if f < ew.capacity {
+            // up movable
+            edges.push((
+                v,
+                w,
+                ResidueEdge::new(ew.capacity - f, ew.cost, e, ResidueDirection::Up),
+            ));
         }
-        if down_edge.2.count > 0 {
-            edges.push(down_edge);
+        if f > ew.demand {
+            // down movable
+            edges.push((
+                w,
+                v,
+                ResidueEdge::new(f - ew.demand, -ew.cost, e, ResidueDirection::Down),
+            ));
         }
         rg.extend_with_edges(&edges);
     }
@@ -341,15 +380,23 @@ pub fn improve_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow) ->
     }
 }
 
-pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow {
-    // TODO searching from non-zero init flow
-    // when non-zero demand graph
-    min_cost_flow_from_zero(graph)
+pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow> {
+    let init_flow = find_initial_flow(graph);
+    match init_flow {
+        Some(flow) => Some(min_cost_flow_from(graph, &flow)),
+        None => None,
+    }
 }
 
 pub fn min_cost_flow_from_zero<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow {
+    // TODO check if graph is zero-demand
+    // when non-zero demand graph
     let mut flow = Flow::zero(graph);
+    min_cost_flow_from(graph, &flow)
+}
 
+pub fn min_cost_flow_from<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, init_flow: &Flow) -> Flow {
+    let mut flow = init_flow.clone();
     loop {
         println!("current flow: {:?} {}", flow, flow.total_cost(graph));
         match improve_flow(graph, &flow) {
@@ -482,8 +529,10 @@ fn zero_demand_flow_to_original_flow(zd_flow: &Flow, zd_graph: &ZeroDemandFlowGr
 
 pub fn find_initial_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow> {
     let zdg = to_zero_demand_graph(graph);
+    draw(&zdg);
     let zd_flow = min_cost_flow_from_zero(&zdg);
 
+    println!("sum_of_demand={:?}", sum_of_demand(&graph));
     if zd_flow.total_cost(&zdg) > sum_of_demand(&graph) as f64 {
         // valid flow does not exists
         None
@@ -499,8 +548,12 @@ pub fn find_initial_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<
 //
 
 pub fn test() {
-    let g = mock_flow_network();
+    // let g = mock_flow_network3();
+    let g = mock_flow_network2();
     draw(&g);
+
+    let f = find_initial_flow(&g);
+    println!("initia_flow={:?}", f);
 
     let f = min_cost_flow(&g);
     println!("{:?}", f);
