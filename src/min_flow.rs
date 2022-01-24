@@ -356,18 +356,79 @@ pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow {
 //
 // finding init valid flow
 //
+#[derive(Debug, Copy, Clone)]
+pub struct ZeroDemandEdgeInfo {
+    /// edge id in original graph
+    origin: EdgeIndex,
+    /// identifier of type-A or type-B
+    kind: ZeroDemandEdgeKind,
+}
+#[derive(Debug, Copy, Clone)]
+pub enum ZeroDemandEdgeKind {
+    /// represents type-A edge
+    /// e = ([0,l],-1)
+    BelowDemand,
+    /// represents type-B edge
+    /// e = ([0,u-l],0)
+    AboveDemand,
+}
+pub type ZeroDemandFlowEdge = FlowEdgeRaw<ZeroDemandEdgeInfo>;
+impl ZeroDemandFlowEdge {
+    pub fn new(
+        demand: u32,
+        capacity: u32,
+        cost: f64,
+        origin: EdgeIndex,
+        kind: ZeroDemandEdgeKind,
+    ) -> ZeroDemandFlowEdge {
+        ZeroDemandFlowEdge {
+            demand,
+            capacity,
+            cost,
+            info: ZeroDemandEdgeInfo { origin, kind },
+        }
+    }
+}
+pub type ZeroDemandFlowGraph = DiGraph<(), ZeroDemandFlowEdge>;
+
 /// To determine all-zero flow is valid or not
 /// we should know whether the given graph is demand-less
 /// that is all demands of the edges are 0.
 fn is_zero_demand_flow_graph<T>(graph: &FlowGraphRaw<T>) -> bool {
+    // TODO
     true
 }
 
-/*
-fn to_zero_demand_graph(graph: &FlowGraph) -> FlowGraph {
-    let mut zdg: FlowGraph = Graph::new();
+fn to_zero_demand_graph(graph: &FlowGraph) -> ZeroDemandFlowGraph {
+    let mut zdg: ZeroDemandFlowGraph = Graph::new();
+
+    // create two edges (Up and Down) for each edge
+    for e in graph.edge_indices() {
+        let ew = graph.edge_weight(e).unwrap();
+        let (v, w) = graph.edge_endpoints(e).unwrap();
+        println!("{:?} {:?}", e, ew);
+
+        zdg.extend_with_edges(&[
+            (
+                v,
+                w,
+                ZeroDemandFlowEdge::new(0, ew.demand, -1., e, ZeroDemandEdgeKind::BelowDemand),
+            ),
+            (
+                v,
+                w,
+                ZeroDemandFlowEdge::new(
+                    0,
+                    ew.capacity - ew.demand,
+                    0.,
+                    e,
+                    ZeroDemandEdgeKind::AboveDemand,
+                ),
+            ),
+        ]);
+    }
+    zdg
 }
-*/
 
 //
 // utils
