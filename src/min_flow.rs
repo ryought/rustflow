@@ -43,7 +43,7 @@ impl FlowEdge {
     }
 }
 
-impl fmt::Display for FlowEdge {
+impl<T> fmt::Display for FlowEdgeRaw<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{},{}] {}", self.demand, self.capacity, self.cost)
     }
@@ -51,6 +51,7 @@ impl fmt::Display for FlowEdge {
 
 /// FlowGraph definition
 pub type FlowGraph = DiGraph<(), FlowEdge>;
+pub type FlowGraphRaw<T> = DiGraph<(), FlowEdgeRaw<T>>;
 
 // Residue graph definitions
 
@@ -149,7 +150,7 @@ pub type ResidueGraph = DiGraph<(), ResidueEdge>;
 pub struct Flow(HashMap<EdgeIndex, u32>);
 
 impl Flow {
-    pub fn zero(graph: &FlowGraph) -> Flow {
+    pub fn zero<T>(graph: &FlowGraphRaw<T>) -> Flow {
         let mut hm = HashMap::new();
         for e in graph.edge_indices() {
             hm.insert(e, 0);
@@ -159,14 +160,14 @@ impl Flow {
     pub fn from(hm: HashMap<EdgeIndex, u32>) -> Flow {
         Flow(hm)
     }
-    pub fn from_fn(graph: &FlowGraph, f: fn(EdgeIndex) -> u32) -> Flow {
+    pub fn from_fn<T>(graph: &FlowGraphRaw<T>, f: fn(EdgeIndex) -> u32) -> Flow {
         let mut hm = HashMap::new();
         for e in graph.edge_indices() {
             hm.insert(e, f(e));
         }
         Flow(hm)
     }
-    pub fn is_valid(&self, graph: &FlowGraph) -> bool {
+    pub fn is_valid<T>(&self, graph: &FlowGraphRaw<T>) -> bool {
         // TODO
         true
     }
@@ -176,7 +177,7 @@ impl Flow {
     pub fn set(&mut self, e: EdgeIndex, v: u32) {
         self.0.insert(e, v);
     }
-    pub fn total_cost(&self, graph: &FlowGraph) -> f64 {
+    pub fn total_cost<T>(&self, graph: &FlowGraphRaw<T>) -> f64 {
         graph
             .edge_indices()
             .map(|e| {
@@ -215,7 +216,7 @@ pub fn mock_flow_network() -> FlowGraph {
 ///  e1 = (u-f, +c) if u-f>0
 /// w -> v
 ///  e2 = (f-l, -c) if f-l>0
-pub fn flow_to_residue(graph: &FlowGraph, flow: &Flow) -> ResidueGraph {
+pub fn flow_to_residue<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow) -> ResidueGraph {
     let mut rg: ResidueGraph = Graph::new();
 
     // create two edges (Up and Down) for each edge
@@ -313,7 +314,7 @@ fn apply_residual_edges_to_flow(flow: &Flow, rg: &ResidueGraph, edges: &[EdgeInd
 
 /// create a new improved flow from current flow
 /// by upgrading along the negative weight cycle in the residual graph
-pub fn improve_flow(graph: &FlowGraph, flow: &Flow) -> Option<Flow> {
+pub fn improve_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow) -> Option<Flow> {
     let rg = flow_to_residue(graph, flow);
     println!("improve_flow!");
     draw(&rg);
@@ -333,7 +334,7 @@ pub fn improve_flow(graph: &FlowGraph, flow: &Flow) -> Option<Flow> {
     }
 }
 
-pub fn min_cost_flow(graph: &FlowGraph) -> Flow {
+pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow {
     let mut flow = Flow::zero(graph);
 
     loop {
@@ -358,7 +359,7 @@ pub fn min_cost_flow(graph: &FlowGraph) -> Flow {
 /// To determine all-zero flow is valid or not
 /// we should know whether the given graph is demand-less
 /// that is all demands of the edges are 0.
-fn is_zero_demand_flow_graph(graph: &FlowGraph) -> bool {
+fn is_zero_demand_flow_graph<T>(graph: &FlowGraphRaw<T>) -> bool {
     true
 }
 
