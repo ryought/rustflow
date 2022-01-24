@@ -51,7 +51,6 @@ pub type FlowGraphRaw<T> = DiGraph<(), FlowEdgeRaw<T>>;
 /// Flow definitions
 ///
 /// Flow f is a mapping of u32 f(e) to each edge e
-/// TODO how to use EdgeId as a concrete type?
 #[derive(Debug, Clone)]
 pub struct Flow(HashMap<EdgeIndex, u32>);
 
