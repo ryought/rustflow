@@ -7,6 +7,24 @@ use petgraph::dot::Dot;
 use petgraph::graph::Graph;
 use petgraph::EdgeType;
 
+///
+/// check if the function `f` is convex or not
+/// in the domain `[x_min, x_max]`
+///
+/// it will check `f(x + 1) - f(x)` is monotonically decreasing
+/// for increasing `x`
+///
+fn is_convex(f: fn(u32) -> f64, x_min: u32, x_max: u32) -> bool {
+    let mut y_prev = f64::MIN;
+
+    (x_min..x_max).map(|x| f(x + 1) - f(x)).all(|y| {
+        // check if ys are decresing
+        let is_decreasing = y > y_prev;
+        y_prev = y;
+        is_decreasing
+    })
+}
+
 pub fn test() {
     let g = mocks::mock_flow_network2();
     draw(&g);
@@ -29,3 +47,15 @@ where
 }
 
 // pub fn draw_with_flow
+//
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_convex_test() {
+        assert!(is_convex(|x| (x as f64 - 10.0).powi(2), 0, 20));
+        assert!(!is_convex(|x| -(x as f64 - 10.0).powi(2), 0, 20));
+    }
+}
