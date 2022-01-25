@@ -2,6 +2,7 @@
 //! Flow network definitions for convex cost.
 //!
 use super::flow::{EdgeCost, Flow, FlowEdgeRaw, FlowGraphRaw};
+use super::utils::is_convex;
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use std::collections::HashMap;
 
@@ -31,6 +32,12 @@ impl ConvexFlowEdge {
             capacity,
             convex_cost,
         }
+    }
+    pub fn is_finite_capacity(&self) -> bool {
+        self.capacity < 100
+    }
+    pub fn is_convex(&self) -> bool {
+        is_convex(self.convex_cost, self.demand, self.capacity)
     }
 }
 
@@ -90,16 +97,23 @@ pub type FixedCostFlowGraph = DiGraph<(), FixedCostFlowEdge>;
 /// with static cost of `e.cost(f + 1) - e.cost(f)`
 ///
 pub fn to_fixed_flow_graph(graph: &ConvexFlowGraph) -> Option<FixedCostFlowGraph> {
-    // TODO assert that
-    // (1) flow is actually convex
-    // (2) capacity is finite
-
     let mut g: FixedCostFlowGraph = FixedCostFlowGraph::new();
 
     for e in graph.edge_indices() {
         let ew = graph.edge_weight(e).unwrap();
         let (v, w) = graph.edge_endpoints(e).unwrap();
 
+        // assert that
+        // (1) flow is actually convex
+        if !ew.is_finite_capacity() {
+            return None;
+        }
+        // (2) capacity is finite
+        if !ew.is_convex() {
+            return None;
+        }
+
+        // convert to the FixedFlowGraph
         let edges: Vec<(NodeIndex, NodeIndex, FixedCostFlowEdge)> = (ew.demand..ew.capacity)
             .map(|f| {
                 let cost = ew.cost(f + 1) - ew.cost(f);
