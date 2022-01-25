@@ -1,10 +1,9 @@
 //!
 //! Flow network definitions for convex cost.
 //!
-use super::flow::{EdgeCost, Flow, FlowEdgeRaw, FlowGraphRaw};
+use super::flow::{EdgeCost, Flow, FlowEdgeRaw};
 use super::utils::{clamped_log, is_convex};
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
-use std::collections::HashMap;
 
 ///
 /// Edge attributes of ConvexFlowGraph
@@ -174,6 +173,7 @@ pub fn restore_convex_flow(
 //
 // utils
 //
+#[allow(dead_code)]
 fn mock_convex_flow_graph() -> ConvexFlowGraph {
     let mut graph: ConvexFlowGraph = ConvexFlowGraph::new();
     let a = graph.add_node(());
@@ -197,6 +197,7 @@ fn mock_convex_flow_graph() -> ConvexFlowGraph {
     graph
 }
 
+#[allow(dead_code)]
 fn mock_convex_flow_graph2() -> ConvexFlowGraph {
     let mut g: ConvexFlowGraph = ConvexFlowGraph::new();
     let s = g.add_node(());
