@@ -242,7 +242,7 @@ fn mock_convex_flow_graph2() -> ConvexFlowGraph {
 
 #[cfg(test)]
 mod tests {
-    use super::super::utils::draw;
+    use super::super::utils::{draw, draw_with_flow};
     use super::*;
     use crate::min_flow::{min_cost_flow, min_cost_flow_convex};
 
@@ -272,6 +272,7 @@ mod tests {
         let g = mock_convex_flow_graph2();
         draw(&g);
         let flow = min_cost_flow_convex(&g).unwrap();
+        draw_with_flow(&g, &flow);
         println!("{:?}", flow);
     }
 }

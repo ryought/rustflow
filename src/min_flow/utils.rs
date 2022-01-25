@@ -1,10 +1,11 @@
 //!
 //! utils
 //!
+use super::flow::Flow;
 use super::mocks;
 use super::{find_initial_flow, min_cost_flow};
 use petgraph::dot::Dot;
-use petgraph::graph::Graph;
+use petgraph::graph::{DiGraph, Graph};
 use petgraph::EdgeType;
 
 ///
@@ -56,8 +57,26 @@ where
     println!("{:?}", Dot::with_config(&graph, &[]));
 }
 
-// pub fn draw_with_flow
-//
+#[derive(Debug, Copy, Clone)]
+struct EdgeWithFlow<T> {
+    flow: u32,
+    info: T,
+}
+
+pub fn draw_with_flow<N, E>(graph: &DiGraph<N, E>, flow: &Flow)
+where
+    N: std::fmt::Debug,
+    E: std::fmt::Debug,
+{
+    let graph_with_flow = graph.map(
+        |_, vw| vw,
+        |e, ew| EdgeWithFlow {
+            flow: flow.get(e).unwrap(),
+            info: ew,
+        },
+    );
+    println!("{:?}", Dot::with_config(&graph_with_flow, &[]));
+}
 
 #[cfg(test)]
 mod tests {
