@@ -114,9 +114,62 @@ pub fn to_fixed_flow_graph(graph: &ConvexFlowGraph) -> Option<FixedCostFlowGraph
     Some(g)
 }
 
-pub fn restore_convex_flow(flow_in_fixed: &Flow) -> Flow {
-    // TODO
-    Flow::empty()
+fn get_flow_in_fixed(edge: EdgeIndex, fixed_flow: &Flow, fixed_graph: &FixedCostFlowGraph) -> u32 {
+    // for original edge e (with EdgeIndex edge) in ConvexFlowGraph
+    // the flow is the sum of the flow on the edges whose FixedCostFlowEdge.info.origin == edge
+    fixed_graph
+        .edge_indices()
+        .filter_map(|fe| {
+            let fe_weight = fixed_graph.edge_weight(fe).unwrap();
+            if fe_weight.info.origin == edge {
+                let flow = fixed_flow.get(fe).unwrap();
+                Some(flow)
+            } else {
+                None
+            }
+        })
+        .sum()
+}
+
+pub fn restore_convex_flow(
+    fixed_flow: &Flow,
+    fixed_graph: &FixedCostFlowGraph,
+    graph: &ConvexFlowGraph,
+) -> Flow {
+    let mut flow = Flow::empty();
+
+    for e in graph.edge_indices() {
+        let f = get_flow_in_fixed(e, fixed_flow, fixed_graph);
+        flow.set(e, f);
+    }
+
+    flow
+}
+
+//
+// utils
+//
+fn mock_convex_flow_graph() -> ConvexFlowGraph {
+    let mut graph: ConvexFlowGraph = ConvexFlowGraph::new();
+    let a = graph.add_node(());
+    let b = graph.add_node(());
+    let c = graph.add_node(());
+    graph.add_edge(
+        a,
+        b,
+        ConvexFlowEdge::new(0, 10, |f| (f as f64 - 5.0).powi(2)),
+    );
+    graph.add_edge(
+        b,
+        c,
+        ConvexFlowEdge::new(0, 10, |f| (f as f64 - 5.0).powi(2)),
+    );
+    graph.add_edge(
+        c,
+        a,
+        ConvexFlowEdge::new(0, 10, |f| (f as f64 - 5.0).powi(2)),
+    );
+    graph
 }
 
 //
@@ -125,7 +178,9 @@ pub fn restore_convex_flow(flow_in_fixed: &Flow) -> Flow {
 
 #[cfg(test)]
 mod tests {
+    use super::super::utils::draw;
     use super::*;
+    use crate::min_flow::min_cost_flow;
 
     #[test]
     fn convex_flow_edge_new() {
@@ -134,5 +189,17 @@ mod tests {
         assert_eq!(50.0, e.cost(5));
         assert_eq!(1, e.demand);
         assert_eq!(5, e.capacity);
+    }
+
+    #[test]
+    fn convex_flow_graph() {
+        let g = mock_convex_flow_graph();
+        let fg = to_fixed_flow_graph(&g).unwrap();
+        let fg_flow = min_cost_flow(&fg).unwrap();
+        let flow = restore_convex_flow(&fg_flow, &fg, &g);
+
+        assert_eq!(flow.get(EdgeIndex::new(0)).unwrap(), 5);
+        assert_eq!(flow.get(EdgeIndex::new(1)).unwrap(), 5);
+        assert_eq!(flow.get(EdgeIndex::new(2)).unwrap(), 5);
     }
 }

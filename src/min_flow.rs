@@ -41,7 +41,7 @@ pub fn min_cost_flow_convex(graph: &ConvexFlowGraph) -> Option<Flow> {
     };
 
     // (2) convert-back to the flow on the ConvexFlowGraph
-    Some(restore_convex_flow(&fg_flow))
+    Some(restore_convex_flow(&fg_flow, &fg, &graph))
 }
 
 //
