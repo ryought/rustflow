@@ -2,7 +2,7 @@
 //! Flow network definitions for convex cost.
 //!
 use super::flow::{EdgeCost, Flow, FlowEdgeRaw, FlowGraphRaw};
-use super::utils::is_convex;
+use super::utils::{clamped_log, is_convex};
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use std::collections::HashMap;
 
@@ -186,6 +186,45 @@ fn mock_convex_flow_graph() -> ConvexFlowGraph {
     graph
 }
 
+fn mock_convex_flow_graph2() -> ConvexFlowGraph {
+    let mut g: ConvexFlowGraph = ConvexFlowGraph::new();
+    let s = g.add_node(());
+    let v1 = g.add_node(());
+    let v2 = g.add_node(());
+    let w1 = g.add_node(());
+    let w2 = g.add_node(());
+    let t = g.add_node(());
+    // surrounding
+    g.add_edge(s, v1, ConvexFlowEdge::new(2, 2, |_| 0.0));
+    g.add_edge(s, v2, ConvexFlowEdge::new(4, 4, |_| 0.0));
+    g.add_edge(w1, t, ConvexFlowEdge::new(1, 1, |_| 0.0));
+    g.add_edge(w1, t, ConvexFlowEdge::new(5, 5, |_| 0.0));
+    g.add_edge(t, s, ConvexFlowEdge::new(6, 6, |_| 0.0));
+
+    // intersecting
+    g.add_edge(
+        v1,
+        w1,
+        ConvexFlowEdge::new(0, 6, |f| -10.0 * clamped_log(f)),
+    );
+    g.add_edge(
+        v1,
+        w2,
+        ConvexFlowEdge::new(0, 6, |f| -10.0 * clamped_log(f)),
+    );
+    g.add_edge(
+        v2,
+        w1,
+        ConvexFlowEdge::new(0, 6, |f| -10.0 * clamped_log(f)),
+    );
+    g.add_edge(
+        v2,
+        w2,
+        ConvexFlowEdge::new(0, 6, |f| -10.0 * clamped_log(f)),
+    );
+    g
+}
+
 //
 // tests
 //
@@ -194,7 +233,7 @@ fn mock_convex_flow_graph() -> ConvexFlowGraph {
 mod tests {
     use super::super::utils::draw;
     use super::*;
-    use crate::min_flow::min_cost_flow;
+    use crate::min_flow::{min_cost_flow, min_cost_flow_convex};
 
     #[test]
     fn convex_flow_edge_new() {
@@ -206,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn convex_flow_graph() {
+    fn convex_flow_graph_mock() {
         let g = mock_convex_flow_graph();
         let fg = to_fixed_flow_graph(&g).unwrap();
         let fg_flow = min_cost_flow(&fg).unwrap();
@@ -215,5 +254,13 @@ mod tests {
         assert_eq!(flow.get(EdgeIndex::new(0)).unwrap(), 5);
         assert_eq!(flow.get(EdgeIndex::new(1)).unwrap(), 5);
         assert_eq!(flow.get(EdgeIndex::new(2)).unwrap(), 5);
+    }
+
+    #[test]
+    fn convex_flow_graph_mock2() {
+        let g = mock_convex_flow_graph2();
+        draw(&g);
+        let flow = min_cost_flow_convex(&g).unwrap();
+        println!("{:?}", flow);
     }
 }

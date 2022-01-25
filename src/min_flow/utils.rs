@@ -25,6 +25,16 @@ pub fn is_convex(f: fn(u32) -> f64, x_min: u32, x_max: u32) -> bool {
     })
 }
 
+/// Avoid `ln(0) = -\infty`
+/// by setting ln(0) = (some constant < 0)
+pub fn clamped_log(x: u32) -> f64 {
+    if x == 0 {
+        -1000.0
+    } else {
+        (x as f64).ln()
+    }
+}
+
 pub fn test() {
     let g = mocks::mock_flow_network2();
     draw(&g);
@@ -55,8 +65,15 @@ mod tests {
 
     #[test]
     fn is_convex_test() {
+        // f(x) = (x-10)^2
         assert!(is_convex(|x| (x as f64 - 10.0).powi(2), 0, 20));
+        // f(x) = - (x-10)^2
         assert!(!is_convex(|x| -(x as f64 - 10.0).powi(2), 0, 20));
+        // f(x) = 0 (constant)
         assert!(is_convex(|_| 0.0, 0, 20));
+        // f(x) = -c log(x)
+        assert!(is_convex(|x| -10.0 * (x as f64).ln(), 1, 20));
+        // f(x) = -c clamped_log(x)
+        assert!(is_convex(|x| -10.0 * clamped_log(x), 0, 20));
     }
 }
