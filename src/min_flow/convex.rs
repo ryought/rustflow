@@ -66,10 +66,16 @@ pub struct ConvexFlowEdgeInfo {
 pub type FixedCostFlowEdge = FlowEdgeRaw<ConvexFlowEdgeInfo>;
 
 impl FixedCostFlowEdge {
-    pub fn new(cost: f64, origin: EdgeIndex, flow_offset: u32) -> FixedCostFlowEdge {
+    pub fn new(
+        demand: u32,
+        capacity: u32,
+        cost: f64,
+        origin: EdgeIndex,
+        flow_offset: u32,
+    ) -> FixedCostFlowEdge {
         FixedCostFlowEdge {
-            demand: 0,
-            capacity: 1,
+            demand,
+            capacity,
             cost,
             info: ConvexFlowEdgeInfo {
                 origin,
@@ -114,11 +120,16 @@ pub fn to_fixed_flow_graph(graph: &ConvexFlowGraph) -> Option<FixedCostFlowGraph
         }
 
         // convert to the FixedFlowGraph
+        // (1) if demand d > 0, add an edge of [demand,capacity]=[d,d]
+        if ew.demand > 0 {
+            let demand = ew.demand;
+            g.extend_with_edges(&[(v, w, FixedCostFlowEdge::new(demand, demand, 0.0, e, 0))]);
+        }
+        // (2) add aux edges of [demand,capacity]=[0,1]
         let edges: Vec<(NodeIndex, NodeIndex, FixedCostFlowEdge)> = (ew.demand..ew.capacity)
             .map(|f| {
                 let cost = ew.cost(f + 1) - ew.cost(f);
-                // should store the original edge information
-                let fe = FixedCostFlowEdge::new(cost, e, f);
+                let fe = FixedCostFlowEdge::new(0, 1, cost, e, f);
                 (v, w, fe)
             })
             .collect();
