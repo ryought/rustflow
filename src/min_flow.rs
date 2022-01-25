@@ -5,7 +5,7 @@ pub mod residue;
 pub mod utils;
 pub mod zero_demand;
 
-use convex::ConvexFlowGraph;
+use convex::{restore_convex_flow, to_fixed_flow_graph, ConvexFlowGraph};
 use flow::{Flow, FlowGraphRaw};
 use residue::improve_flow;
 use zero_demand::{find_initial_flow, is_zero_demand_flow_graph};
@@ -28,9 +28,20 @@ pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow
 ///
 /// Find minimum cost flow on the ConvexFlowGraph
 ///
-pub fn min_cost_flow_convex(graph: &ConvexFlowGraph) {
+pub fn min_cost_flow_convex(graph: &ConvexFlowGraph) -> Option<Flow> {
     // (1) convert to normal FlowGraph and find the min-cost-flow
+    let fg = match to_fixed_flow_graph(graph) {
+        Some(fg) => fg,
+        None => return None,
+    };
+
+    let fg_flow = match min_cost_flow(&fg) {
+        Some(fg_flow) => fg_flow,
+        None => return None,
+    };
+
     // (2) convert-back to the flow on the ConvexFlowGraph
+    Some(restore_convex_flow(&fg_flow))
 }
 
 //

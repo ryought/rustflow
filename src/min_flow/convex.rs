@@ -1,12 +1,17 @@
 //!
 //! Flow network definitions for convex cost.
 //!
-use super::flow::EdgeCost;
-use petgraph::graph::{DiGraph, EdgeIndex};
+use super::flow::{EdgeCost, Flow, FlowEdgeRaw, FlowGraphRaw};
+use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use std::collections::HashMap;
 
 ///
-///
+/// Edge attributes of ConvexFlowGraph
+/// For each edge,
+///   demand
+///   capacity
+///   convex cost function
+/// are assigned.
 ///
 #[derive(Debug, Copy, Clone)]
 pub struct ConvexFlowEdge {
@@ -37,16 +42,82 @@ impl EdgeCost for ConvexFlowEdge {
 
 pub type ConvexFlowGraph = DiGraph<(), ConvexFlowEdge>;
 
+///
+///
+///
+#[derive(Debug, Copy, Clone)]
+pub struct ConvexFlowEdgeInfo {
+    /// This represents that the edge is created from the origin
+    /// in ConvexFlowGraph
+    origin: EdgeIndex,
+    /// The FixedCostFlowEdge has demand=0 and capacity=1.
+    /// if this edge has flow=1, the original edge in ConvexFlowGraph
+    /// should have flow=flow_offset+1.
+    flow_offset: u32,
+}
+
+pub type FixedCostFlowEdge = FlowEdgeRaw<ConvexFlowEdgeInfo>;
+
+impl FixedCostFlowEdge {
+    pub fn new(cost: f64, origin: EdgeIndex, flow_offset: u32) -> FixedCostFlowEdge {
+        FixedCostFlowEdge {
+            demand: 0,
+            capacity: 1,
+            cost,
+            info: ConvexFlowEdgeInfo {
+                origin,
+                flow_offset,
+            },
+        }
+    }
+}
+
+///
+/// A special kind of flow graph, that will be converted from ConvexFlowGraph
+/// Each edge has additional information of ConvexFlowEdgeInfo, that will be
+/// used when convert it back to flow in the original ConvexFlowGraph.
+///
+pub type FixedCostFlowGraph = DiGraph<(), FixedCostFlowEdge>;
+
 //
 // conversion functions
 //
 
 ///
-/// convert convex flow graph to the (normal, static cost) flow graph
+/// convert convex flow graph to the (normal, fixed constant cost) flow graph
 ///
 /// create an parallel edges
+/// with static cost of `e.cost(f + 1) - e.cost(f)`
 ///
-pub fn to_flow_graph(graph: &ConvexFlowGraph) {}
+pub fn to_fixed_flow_graph(graph: &ConvexFlowGraph) -> Option<FixedCostFlowGraph> {
+    // TODO assert that
+    // (1) flow is actually convex
+    // (2) capacity is finite
+
+    let mut g: FixedCostFlowGraph = FixedCostFlowGraph::new();
+
+    for e in graph.edge_indices() {
+        let ew = graph.edge_weight(e).unwrap();
+        let (v, w) = graph.edge_endpoints(e).unwrap();
+
+        let edges: Vec<(NodeIndex, NodeIndex, FixedCostFlowEdge)> = (ew.demand..ew.capacity)
+            .map(|f| {
+                let cost = ew.cost(f + 1) - ew.cost(f);
+                // should store the original edge information
+                let fe = FixedCostFlowEdge::new(cost, e, f);
+                (v, w, fe)
+            })
+            .collect();
+        g.extend_with_edges(&edges);
+    }
+
+    Some(g)
+}
+
+pub fn restore_convex_flow(flow_in_fixed: &Flow) -> Flow {
+    // TODO
+    Flow::empty()
+}
 
 //
 // tests
