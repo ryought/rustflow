@@ -11,17 +11,17 @@ use petgraph::EdgeType;
 /// check if the function `f` is convex or not
 /// in the domain `[x_min, x_max]`
 ///
-/// it will check `f(x + 1) - f(x)` is monotonically decreasing
-/// for increasing `x`
+/// it will check `f(x + 1) - f(x)` is monotonically increasing
+/// for increasing `x`s
 ///
 pub fn is_convex(f: fn(u32) -> f64, x_min: u32, x_max: u32) -> bool {
     let mut y_prev = f64::MIN;
 
     (x_min..x_max).map(|x| f(x + 1) - f(x)).all(|y| {
-        // check if ys are decresing
-        let is_decreasing = y > y_prev;
+        // check if ys are increasing
+        let is_increasing = y >= y_prev;
         y_prev = y;
-        is_decreasing
+        is_increasing
     })
 }
 
@@ -57,5 +57,6 @@ mod tests {
     fn is_convex_test() {
         assert!(is_convex(|x| (x as f64 - 10.0).powi(2), 0, 20));
         assert!(!is_convex(|x| -(x as f64 - 10.0).powi(2), 0, 20));
+        assert!(is_convex(|_| 0.0, 0, 20));
     }
 }
