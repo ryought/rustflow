@@ -52,3 +52,43 @@ pub fn mock_flow_network3() -> FlowGraph {
     graph.add_edge(d, a, FlowEdge::new(2, 2, 0.0));
     graph
 }
+
+pub fn mock_flow_network_parallel_edge() -> FlowGraph {
+    let mut graph: FlowGraph = Graph::new();
+    let a = graph.add_node(());
+    let b = graph.add_node(());
+    let c = graph.add_node(());
+    graph.add_edge(a, b, FlowEdge::new(0, 2, -1.0));
+    graph.add_edge(b, c, FlowEdge::new(0, 2, -1.0));
+    graph.add_edge(b, c, FlowEdge::new(0, 2, -2.0));
+    graph.add_edge(c, a, FlowEdge::new(0, 2, 0.0));
+    graph
+}
+
+pub fn mock_flow_network_parallel_edge2() -> FlowGraph {
+    let mut graph: FlowGraph = Graph::new();
+    let a = graph.add_node(());
+    let b = graph.add_node(());
+    let c = graph.add_node(());
+    graph.add_edge(a, b, FlowEdge::new(0, 2, 1.0));
+    graph.add_edge(b, c, FlowEdge::new(0, 2, 1.0));
+    graph.add_edge(b, c, FlowEdge::new(0, 2, 2.0));
+    graph.add_edge(c, a, FlowEdge::new(2, 2, 0.0));
+    graph
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::utils::{draw, draw_with_flow};
+    use super::*;
+    use crate::min_flow::min_cost_flow;
+
+    #[test]
+    fn test_mock_flow_network_parallel_edge() {
+        let g = mock_flow_network_parallel_edge2();
+        draw(&g);
+        let f = min_cost_flow(&g).unwrap();
+        println!("{:?}", f);
+        draw_with_flow(&g, &f);
+    }
+}

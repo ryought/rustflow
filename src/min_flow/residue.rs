@@ -247,3 +247,35 @@ pub fn improve_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow) ->
         None => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn petgraph_negative_cycle_test() {
+        // small cycle test
+        let mut g: DiGraph<(), f32> = Graph::new();
+        let a = g.add_node(());
+        let b = g.add_node(());
+        g.add_edge(a, b, -10.0);
+        g.add_edge(b, a, 9.0);
+        let path = find_negative_cycle(&g, NodeIndex::new(0));
+        assert_eq!(path.is_some(), true);
+        let nodes = path.unwrap();
+        assert!(nodes.contains(&NodeIndex::new(0)));
+        assert!(nodes.contains(&NodeIndex::new(1)));
+    }
+
+    #[test]
+    fn petgraph_negative_cycle_test2() {
+        // self loop test, it will work fine
+        let mut g: DiGraph<(), f32> = Graph::new();
+        let a = g.add_node(());
+        g.add_edge(a, a, -10.0);
+        let path = find_negative_cycle(&g, NodeIndex::new(0));
+        assert_eq!(path.is_some(), true);
+        let nodes = path.unwrap();
+        assert!(nodes.contains(&NodeIndex::new(0)));
+    }
+}
