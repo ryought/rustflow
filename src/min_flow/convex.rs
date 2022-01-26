@@ -210,7 +210,7 @@ fn mock_convex_flow_graph2() -> ConvexFlowGraph {
     g.add_edge(s, v1, ConvexFlowEdge::new(2, 2, |_| 0.0));
     g.add_edge(s, v2, ConvexFlowEdge::new(4, 4, |_| 0.0));
     g.add_edge(w1, t, ConvexFlowEdge::new(1, 1, |_| 0.0));
-    g.add_edge(w1, t, ConvexFlowEdge::new(5, 5, |_| 0.0));
+    g.add_edge(w2, t, ConvexFlowEdge::new(5, 5, |_| 0.0));
     g.add_edge(t, s, ConvexFlowEdge::new(6, 6, |_| 0.0));
 
     // intersecting
