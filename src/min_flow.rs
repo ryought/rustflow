@@ -8,6 +8,7 @@ pub mod zero_demand;
 use convex::{restore_convex_flow, to_fixed_flow_graph, ConvexFlowGraph};
 use flow::{Flow, FlowGraphRaw};
 use residue::improve_flow;
+use utils::draw_with_flow;
 use zero_demand::{find_initial_flow, is_zero_demand_flow_graph};
 
 //
@@ -19,8 +20,12 @@ use zero_demand::{find_initial_flow, is_zero_demand_flow_graph};
 ///
 pub fn min_cost_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Option<Flow> {
     let init_flow = find_initial_flow(graph);
+
     match init_flow {
-        Some(flow) => Some(min_cost_flow_from(graph, &flow)),
+        Some(flow) => {
+            draw_with_flow(graph, &flow);
+            Some(min_cost_flow_from(graph, &flow))
+        }
         None => None,
     }
 }

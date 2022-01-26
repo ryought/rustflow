@@ -4,10 +4,12 @@
 //! - ResidueDirection
 //!
 use super::flow::{Flow, FlowGraphRaw};
+use super::utils::draw;
 use itertools::Itertools; // for tuple_windows
 use petgraph::algo::find_negative_cycle;
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use petgraph::prelude::*;
+use petgraph::visit::VisitMap;
 use std::cmp::Ordering;
 
 // basic definitions
@@ -148,6 +150,10 @@ pub fn flow_to_residue<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow)
     rg
 }
 
+fn residue_to_float_weighted_graph(graph: &ResidueGraph) -> DiGraph<(), f64> {
+    graph.map(|_, _| (), |_, ew| ew.weight)
+}
+
 //
 // internal functions to find a update of the flow
 // (i.e. the negative cycle in ResidueGraph)
@@ -224,6 +230,36 @@ fn apply_residual_edges_to_flow(flow: &Flow, rg: &ResidueGraph, edges: &[EdgeInd
     new_flow
 }
 
+fn find_negative_cycle_in_whole_graph(graph: &ResidueGraph) -> Option<Vec<NodeIndex>> {
+    let mut node = NodeIndex::new(0);
+    let mut dfs = Dfs::new(&graph, node);
+
+    loop {
+        let path = find_negative_cycle(&graph, node);
+
+        if path.is_some() {
+            return path;
+        }
+
+        // search for alternative start point
+        dfs.move_to(node);
+        while let Some(nx) = dfs.next(&graph) {}
+        let unvisited_node = graph
+            .node_indices()
+            .find(|node| !dfs.discovered.is_visited(node));
+
+        // if there is unvisited node, search again for negative cycle
+        match unvisited_node {
+            Some(n) => {
+                node = n;
+                continue;
+            }
+            None => break,
+        }
+    }
+    return None;
+}
+
 //
 // public functions
 //
@@ -234,7 +270,8 @@ pub fn improve_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow) ->
     let rg = flow_to_residue(graph, flow);
 
     // find negative weight cycles
-    let path = find_negative_cycle(&rg, NodeIndex::new(0));
+    let path = find_negative_cycle_in_whole_graph(&rg);
+    draw(&rg);
 
     match path {
         Some(nodes) => {
@@ -277,5 +314,32 @@ mod tests {
         assert_eq!(path.is_some(), true);
         let nodes = path.unwrap();
         assert!(nodes.contains(&NodeIndex::new(0)));
+    }
+
+    #[test]
+    fn negative_cycle_in_whole() {
+        let mut g: ResidueGraph = ResidueGraph::new();
+        let a = g.add_node(());
+        let b = g.add_node(());
+        let c = g.add_node(());
+        g.add_edge(
+            a,
+            b,
+            ResidueEdge::new(1, 10.0, EdgeIndex::new(0), ResidueDirection::Up),
+        );
+        g.add_edge(
+            b,
+            a,
+            ResidueEdge::new(1, -1.0, EdgeIndex::new(0), ResidueDirection::Up),
+        );
+        g.add_edge(
+            c,
+            c,
+            ResidueEdge::new(1, -1.0, EdgeIndex::new(0), ResidueDirection::Up),
+        );
+        let path = find_negative_cycle_in_whole_graph(&g);
+        assert_eq!(path.is_some(), true);
+        let nodes = path.unwrap();
+        assert!(nodes.contains(&NodeIndex::new(2)));
     }
 }

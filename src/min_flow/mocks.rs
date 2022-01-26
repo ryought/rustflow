@@ -82,13 +82,18 @@ mod tests {
     use super::super::utils::{draw, draw_with_flow};
     use super::*;
     use crate::min_flow::min_cost_flow;
+    use petgraph::graph::EdgeIndex;
 
     #[test]
     fn test_mock_flow_network_parallel_edge() {
         let g = mock_flow_network_parallel_edge2();
         draw(&g);
         let f = min_cost_flow(&g).unwrap();
-        println!("{:?}", f);
         draw_with_flow(&g, &f);
+        // TODO should be returned from mock definitions
+        assert_eq!(f.get(EdgeIndex::new(0)).unwrap(), 2);
+        assert_eq!(f.get(EdgeIndex::new(1)).unwrap(), 2);
+        assert_eq!(f.get(EdgeIndex::new(2)).unwrap(), 0);
+        assert_eq!(f.get(EdgeIndex::new(3)).unwrap(), 2);
     }
 }
