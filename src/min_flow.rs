@@ -6,7 +6,7 @@ pub mod utils;
 pub mod zero_demand;
 
 use convex::{restore_convex_flow, to_fixed_flow_graph, ConvexFlowGraph};
-use flow::{Flow, FlowGraphRaw};
+use flow::{is_valid_flow, Flow, FlowGraphRaw};
 use residue::improve_flow;
 use utils::draw_with_flow;
 use zero_demand::{find_initial_flow, is_zero_demand_flow_graph};
@@ -67,8 +67,9 @@ fn min_cost_flow_from_zero<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>) -> Flow 
 ///
 fn min_cost_flow_from<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, init_flow: &Flow) -> Flow {
     let mut flow = init_flow.clone();
+
     loop {
-        println!("current flow: {:?} {}", flow, flow.total_cost(graph));
+        assert!(is_valid_flow(&flow, &graph));
         match improve_flow(graph, &flow) {
             Some(new_flow) => {
                 flow = new_flow;
