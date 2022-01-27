@@ -195,6 +195,17 @@ fn node_list_to_edge_list(graph: &ResidueGraph, nodes: &[NodeIndex]) -> Vec<Edge
     edges
 }
 
+fn is_negative_cycle(graph: &ResidueGraph, edges: &[EdgeIndex]) -> bool {
+    let total_weight: f64 = edges
+        .iter()
+        .map(|&e| {
+            let ew = graph.edge_weight(e).unwrap();
+            ew.weight
+        })
+        .sum();
+    total_weight < 0.0
+}
+
 ///
 /// Update the flow by a negative cycle on a residue graph.
 ///
@@ -276,6 +287,10 @@ pub fn improve_flow<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow) ->
     match path {
         Some(nodes) => {
             let edges = node_list_to_edge_list(&rg, &nodes);
+
+            // check if this is actually negative cycle
+            assert!(is_negative_cycle(&rg, &edges));
+
             // apply these changes along the cycle to current flow
             let new_flow = apply_residual_edges_to_flow(&flow, &rg, &edges);
             println!("{:?}", new_flow);
