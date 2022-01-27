@@ -53,16 +53,18 @@ pub fn mock_flow_network3() -> FlowGraph {
     graph
 }
 
-pub fn mock_flow_network_parallel_edge() -> FlowGraph {
+pub fn mock_flow_network_parallel_edge1() -> (FlowGraph, Flow) {
     let mut graph: FlowGraph = Graph::new();
     let a = graph.add_node(());
     let b = graph.add_node(());
     let c = graph.add_node(());
-    graph.add_edge(a, b, FlowEdge::new(0, 2, -1.0));
-    graph.add_edge(b, c, FlowEdge::new(0, 2, -1.0));
-    graph.add_edge(b, c, FlowEdge::new(0, 2, -2.0));
-    graph.add_edge(c, a, FlowEdge::new(0, 2, 0.0));
-    graph
+    let e0 = graph.add_edge(a, b, FlowEdge::new(0, 2, -1.0));
+    let e1 = graph.add_edge(b, c, FlowEdge::new(0, 2, -1.0));
+    let e2 = graph.add_edge(b, c, FlowEdge::new(0, 2, -2.0));
+    let e3 = graph.add_edge(c, a, FlowEdge::new(0, 2, 0.0));
+
+    let f = Flow::from_vec(&[(e0, 2), (e1, 0), (e2, 2), (e3, 2)]);
+    (graph, f)
 }
 
 pub fn mock_flow_network_parallel_edge2() -> (FlowGraph, Flow) {
@@ -75,7 +77,7 @@ pub fn mock_flow_network_parallel_edge2() -> (FlowGraph, Flow) {
     let e3 = graph.add_edge(b, c, FlowEdge::new(0, 2, 2.0));
     let e4 = graph.add_edge(c, a, FlowEdge::new(2, 2, 0.0));
 
-    let mut f = Flow::from_vec(&[(e1, 2), (e2, 2), (e3, 0), (e4, 2)]);
+    let f = Flow::from_vec(&[(e1, 2), (e2, 2), (e3, 0), (e4, 2)]);
     (graph, f)
 }
 
@@ -85,6 +87,13 @@ mod tests {
     use super::*;
     use crate::min_flow::min_cost_flow;
     use petgraph::graph::EdgeIndex;
+
+    #[test]
+    fn test_mock_flow_network_parallel_edge1() {
+        let (g, f_true) = mock_flow_network_parallel_edge1();
+        let f = min_cost_flow(&g).unwrap();
+        assert!(f_true == f);
+    }
 
     #[test]
     fn test_mock_flow_network_parallel_edge2() {
