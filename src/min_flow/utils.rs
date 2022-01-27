@@ -37,7 +37,7 @@ pub fn clamped_log(x: u32) -> f64 {
 }
 
 pub fn test() {
-    let g = mocks::mock_flow_network2();
+    let (g, _) = mocks::mock_flow_network2();
     draw(&g);
 
     let f = find_initial_flow(&g);
