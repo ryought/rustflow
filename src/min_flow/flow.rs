@@ -69,6 +69,13 @@ impl Flow {
     pub fn from(hm: HashMap<EdgeIndex, u32>) -> Flow {
         Flow(hm)
     }
+    pub fn from_vec(vec: &[(EdgeIndex, u32)]) -> Flow {
+        let mut hm = HashMap::new();
+        for (e, f) in vec.iter() {
+            hm.insert(*e, *f);
+        }
+        Flow(hm)
+    }
     pub fn from_fn<N, E>(graph: &DiGraph<N, E>, f: fn(EdgeIndex) -> u32) -> Flow {
         let mut hm = HashMap::new();
         for e in graph.edge_indices() {

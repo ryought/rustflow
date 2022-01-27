@@ -75,13 +75,7 @@ pub fn mock_flow_network_parallel_edge2() -> (FlowGraph, Flow) {
     let e3 = graph.add_edge(b, c, FlowEdge::new(0, 2, 2.0));
     let e4 = graph.add_edge(c, a, FlowEdge::new(2, 2, 0.0));
 
-    // TODO add concise flow constructor
-    let mut f = Flow::empty();
-    f.set(e1, 2);
-    f.set(e2, 2);
-    f.set(e3, 0);
-    f.set(e4, 2);
-
+    let mut f = Flow::from_vec(&[(e1, 2), (e2, 2), (e3, 0), (e4, 2)]);
     (graph, f)
 }
 
