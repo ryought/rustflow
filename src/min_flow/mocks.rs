@@ -1,5 +1,5 @@
-use super::flow::{FlowEdge, FlowGraph};
-use petgraph::graph::Graph;
+use super::flow::{Flow, FlowEdge, FlowGraph};
+use petgraph::graph::{EdgeIndex, Graph};
 
 /// mock graph generation functions
 pub fn mock_flow_network() -> FlowGraph {
@@ -65,16 +65,24 @@ pub fn mock_flow_network_parallel_edge() -> FlowGraph {
     graph
 }
 
-pub fn mock_flow_network_parallel_edge2() -> FlowGraph {
-    let mut graph: FlowGraph = Graph::new();
+pub fn mock_flow_network_parallel_edge2() -> (FlowGraph, Flow) {
+    let mut graph: FlowGraph = FlowGraph::new();
     let a = graph.add_node(());
     let b = graph.add_node(());
     let c = graph.add_node(());
-    graph.add_edge(a, b, FlowEdge::new(0, 2, 1.0));
-    graph.add_edge(b, c, FlowEdge::new(0, 2, 1.0));
-    graph.add_edge(b, c, FlowEdge::new(0, 2, 2.0));
-    graph.add_edge(c, a, FlowEdge::new(2, 2, 0.0));
-    graph
+    let e1 = graph.add_edge(a, b, FlowEdge::new(0, 2, 1.0));
+    let e2 = graph.add_edge(b, c, FlowEdge::new(0, 2, 1.0));
+    let e3 = graph.add_edge(b, c, FlowEdge::new(0, 2, 2.0));
+    let e4 = graph.add_edge(c, a, FlowEdge::new(2, 2, 0.0));
+
+    // TODO add concise flow constructor
+    let mut f = Flow::empty();
+    f.set(e1, 2);
+    f.set(e2, 2);
+    f.set(e3, 0);
+    f.set(e4, 2);
+
+    (graph, f)
 }
 
 #[cfg(test)]
@@ -85,15 +93,14 @@ mod tests {
     use petgraph::graph::EdgeIndex;
 
     #[test]
-    fn test_mock_flow_network_parallel_edge() {
-        let g = mock_flow_network_parallel_edge2();
+    fn test_mock_flow_network_parallel_edge2() {
+        let (g, f_true) = mock_flow_network_parallel_edge2();
         draw(&g);
         let f = min_cost_flow(&g).unwrap();
         draw_with_flow(&g, &f);
-        // TODO should be returned from mock definitions
-        assert_eq!(f.get(EdgeIndex::new(0)).unwrap(), 2);
-        assert_eq!(f.get(EdgeIndex::new(1)).unwrap(), 2);
-        assert_eq!(f.get(EdgeIndex::new(2)).unwrap(), 0);
-        assert_eq!(f.get(EdgeIndex::new(3)).unwrap(), 2);
+
+        println!("{:?}", f);
+        println!("{:?}", f_true);
+        assert!(f_true == f);
     }
 }
