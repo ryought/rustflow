@@ -180,7 +180,7 @@ impl<T> EdgeCost for FlowEdgeRaw<T> {
 #[cfg(test)]
 mod tests {
     use super::super::mocks::mock_flow_network1;
-    use super::super::utils::{draw, draw_with_flow};
+    use super::super::utils::draw;
     use super::*;
 
     #[test]

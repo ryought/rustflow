@@ -113,7 +113,6 @@ mod tests {
     use super::super::utils::{draw, draw_with_flow};
     use super::*;
     use crate::min_flow::min_cost_flow;
-    use petgraph::graph::EdgeIndex;
 
     #[test]
     fn test_mock_flow_network1() {

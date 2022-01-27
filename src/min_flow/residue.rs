@@ -150,6 +150,7 @@ pub fn flow_to_residue<T: std::fmt::Debug>(graph: &FlowGraphRaw<T>, flow: &Flow)
     rg
 }
 
+#[allow(dead_code)]
 fn residue_to_float_weighted_graph(graph: &ResidueGraph) -> DiGraph<(), f64> {
     graph.map(|_, _| (), |_, ew| ew.weight)
 }
@@ -254,7 +255,7 @@ fn find_negative_cycle_in_whole_graph(graph: &ResidueGraph) -> Option<Vec<NodeIn
 
         // search for alternative start point
         dfs.move_to(node);
-        while let Some(nx) = dfs.next(&graph) {}
+        while let Some(_nx) = dfs.next(&graph) {}
         let unvisited_node = graph
             .node_indices()
             .find(|node| !dfs.discovered.is_visited(node));
