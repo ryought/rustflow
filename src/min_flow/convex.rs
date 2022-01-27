@@ -40,6 +40,11 @@ impl ConvexFlowEdge {
     }
 }
 
+/// short version of ConvexFlowEdge::new
+fn cfe(demand: u32, capacity: u32, convex_cost: fn(u32) -> f64) -> ConvexFlowEdge {
+    ConvexFlowEdge::new(demand, capacity, convex_cost)
+}
+
 impl EdgeCost for ConvexFlowEdge {
     fn cost(&self, flow: u32) -> f64 {
         (self.convex_cost)(flow)
@@ -174,31 +179,22 @@ pub fn restore_convex_flow(
 // utils
 //
 #[allow(dead_code)]
-fn mock_convex_flow_graph() -> ConvexFlowGraph {
-    let mut graph: ConvexFlowGraph = ConvexFlowGraph::new();
-    let a = graph.add_node(());
-    let b = graph.add_node(());
-    let c = graph.add_node(());
-    graph.add_edge(
-        a,
-        b,
-        ConvexFlowEdge::new(0, 10, |f| (f as f64 - 5.0).powi(2)),
-    );
-    graph.add_edge(
-        b,
-        c,
-        ConvexFlowEdge::new(0, 10, |f| (f as f64 - 5.0).powi(2)),
-    );
-    graph.add_edge(
-        c,
-        a,
-        ConvexFlowEdge::new(0, 10, |f| (f as f64 - 5.0).powi(2)),
-    );
-    graph
+fn mock_convex_flow_graph1() -> (ConvexFlowGraph, Flow) {
+    let mut g: ConvexFlowGraph = ConvexFlowGraph::new();
+    let a = g.add_node(());
+    let b = g.add_node(());
+    let c = g.add_node(());
+    let e0 = g.add_edge(a, b, cfe(0, 10, |f| (f as f64 - 5.0).powi(2)));
+    let e1 = g.add_edge(b, c, cfe(0, 10, |f| (f as f64 - 5.0).powi(2)));
+    let e2 = g.add_edge(c, a, cfe(0, 10, |f| (f as f64 - 5.0).powi(2)));
+
+    let f = Flow::from_vec(&[(e0, 5), (e1, 5), (e2, 5)]);
+
+    (g, f)
 }
 
 #[allow(dead_code)]
-fn mock_convex_flow_graph2() -> ConvexFlowGraph {
+fn mock_convex_flow_graph2() -> (ConvexFlowGraph, Flow) {
     let mut g: ConvexFlowGraph = ConvexFlowGraph::new();
     let s = g.add_node(());
     let v1 = g.add_node(());
@@ -207,34 +203,32 @@ fn mock_convex_flow_graph2() -> ConvexFlowGraph {
     let w2 = g.add_node(());
     let t = g.add_node(());
     // surrounding
-    g.add_edge(s, v1, ConvexFlowEdge::new(2, 2, |_| 0.0));
-    g.add_edge(s, v2, ConvexFlowEdge::new(4, 4, |_| 0.0));
-    g.add_edge(w1, t, ConvexFlowEdge::new(1, 1, |_| 0.0));
-    g.add_edge(w2, t, ConvexFlowEdge::new(5, 5, |_| 0.0));
-    g.add_edge(t, s, ConvexFlowEdge::new(6, 6, |_| 0.0));
+    let e0 = g.add_edge(s, v1, cfe(2, 2, |_| 0.0));
+    let e1 = g.add_edge(s, v2, cfe(4, 4, |_| 0.0));
+    let e2 = g.add_edge(w1, t, cfe(1, 1, |_| 0.0));
+    let e3 = g.add_edge(w2, t, cfe(5, 5, |_| 0.0));
+    let e4 = g.add_edge(t, s, cfe(6, 6, |_| 0.0));
 
     // intersecting
-    g.add_edge(
-        v1,
-        w1,
-        ConvexFlowEdge::new(0, 6, |f| -10.0 * clamped_log(f)),
-    );
-    g.add_edge(
-        v1,
-        w2,
-        ConvexFlowEdge::new(0, 6, |f| -10.0 * clamped_log(f)),
-    );
-    g.add_edge(
-        v2,
-        w1,
-        ConvexFlowEdge::new(0, 6, |f| -10.0 * clamped_log(f)),
-    );
-    g.add_edge(
-        v2,
-        w2,
-        ConvexFlowEdge::new(0, 6, |f| -10.0 * clamped_log(f)),
-    );
-    g
+    let e5 = g.add_edge(v1, w1, cfe(0, 6, |f| -10.0 * clamped_log(f)));
+    let e6 = g.add_edge(v1, w2, cfe(0, 6, |f| -10.0 * clamped_log(f)));
+    let e7 = g.add_edge(v2, w1, cfe(0, 6, |f| -10.0 * clamped_log(f)));
+    let e8 = g.add_edge(v2, w2, cfe(0, 6, |f| -10.0 * clamped_log(f)));
+
+    // true flow
+    let f = Flow::from_vec(&[
+        (e0, 2),
+        (e1, 4),
+        (e2, 1),
+        (e3, 5),
+        (e4, 6),
+        (e5, 0),
+        (e6, 2),
+        (e7, 1),
+        (e8, 3),
+    ]);
+
+    (g, f)
 }
 
 //
@@ -257,23 +251,24 @@ mod tests {
     }
 
     #[test]
-    fn convex_flow_graph_mock() {
-        let g = mock_convex_flow_graph();
+    fn convex_flow_graph_mock1() {
+        let (g, f_true) = mock_convex_flow_graph1();
         let fg = to_fixed_flow_graph(&g).unwrap();
         let fg_flow = min_cost_flow(&fg).unwrap();
         let flow = restore_convex_flow(&fg_flow, &fg, &g);
 
-        assert_eq!(flow.get(EdgeIndex::new(0)).unwrap(), 5);
-        assert_eq!(flow.get(EdgeIndex::new(1)).unwrap(), 5);
-        assert_eq!(flow.get(EdgeIndex::new(2)).unwrap(), 5);
+        println!("{:?}", flow);
+        println!("{:?}", f_true);
+        assert!(flow == f_true);
     }
 
     #[test]
     fn convex_flow_graph_mock2() {
-        let g = mock_convex_flow_graph2();
+        let (g, f_true) = mock_convex_flow_graph2();
         draw(&g);
         let flow = min_cost_flow_convex(&g).unwrap();
         draw_with_flow(&g, &flow);
         println!("{:?}", flow);
+        assert!(flow == f_true);
     }
 }
