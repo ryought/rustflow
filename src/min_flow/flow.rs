@@ -51,7 +51,7 @@ pub type FlowGraphRaw<T> = DiGraph<(), FlowEdgeRaw<T>>;
 /// Flow definitions
 ///
 /// Flow f is a mapping of u32 f(e) to each edge e
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Flow(HashMap<EdgeIndex, u32>);
 
 impl Flow {
