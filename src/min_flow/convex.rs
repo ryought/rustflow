@@ -304,6 +304,20 @@ fn mock_convex_flow_graph2() -> (ConvexFlowGraph<usize>, Flow<usize>) {
     (g, f)
 }
 
+#[allow(dead_code)]
+fn mock_convex_flow_graph3() -> ConvexFlowGraph<usize> {
+    let mut g = ConvexFlowGraph::new();
+    g.extend_with_edges(&[
+        (0, 1, cfe(0, 10, |_| 0.0)),
+        (1, 2, cfe(0, 10, |_| 0.0)),
+        (2, 0, cfe(0, 10, |_| 0.0)),
+        (1, 3, cfe(0, 10, |_| 0.0)),
+        (3, 4, cfe(0, 10, |_| 0.0)),
+        (4, 2, cfe(0, 10, |_| 0.0)),
+    ]);
+    g
+}
+
 //
 // tests
 //
@@ -311,7 +325,10 @@ fn mock_convex_flow_graph2() -> (ConvexFlowGraph<usize>, Flow<usize>) {
 #[cfg(test)]
 mod tests {
     use super::super::utils::{draw, draw_with_flow};
-    use super::super::{min_cost_flow, min_cost_flow_convex, min_cost_flow_convex_fast, EdgeCost};
+    use super::super::{
+        enumerate_neighboring_flows, min_cost_flow, min_cost_flow_convex,
+        min_cost_flow_convex_fast, EdgeCost,
+    };
     use super::*;
 
     #[test]
@@ -368,5 +385,56 @@ mod tests {
         println!("{:?}", f_true);
         assert!(f.is_some());
         assert!(f.unwrap() == f_true);
+    }
+
+    #[test]
+    fn enumerate_graph3() {
+        let g = mock_convex_flow_graph3();
+
+        {
+            let f0 = vec![0, 0, 0, 0, 0, 0].into();
+            println!("f0={}", f0);
+            let fs = enumerate_neighboring_flows(&g, &f0, Some(10), None);
+            for (f, ui) in fs.iter() {
+                println!("f={} ui={:?}", f, ui);
+            }
+            assert_eq!(fs.len(), 2);
+            assert_eq!(fs[0].0, vec![1, 1, 1, 0, 0, 0].into());
+            assert_eq!(fs[1].0, vec![1, 0, 1, 1, 1, 1].into());
+
+            let fs = enumerate_neighboring_flows(&g, &f0, Some(2), None);
+            assert_eq!(fs.len(), 0);
+
+            let fs = enumerate_neighboring_flows(&g, &f0, Some(3), None);
+            assert_eq!(fs.len(), 1);
+
+            let fs = enumerate_neighboring_flows(&g, &f0, Some(5), None);
+            assert_eq!(fs.len(), 2);
+
+            let fs = enumerate_neighboring_flows(&g, &f0, Some(5), Some(0));
+            assert_eq!(fs.len(), 2); // n_flip of all neighbors are 0
+        }
+
+        {
+            let f0 = vec![2, 1, 2, 1, 1, 1].into();
+            println!("f0={}", f0);
+            let fs = enumerate_neighboring_flows(&g, &f0, Some(10), None);
+            for (f, ui) in fs.iter() {
+                println!("f={} ui={:?}", f, ui);
+            }
+            assert_eq!(fs.len(), 6);
+            assert_eq!(fs[0].0, vec![1, 0, 1, 1, 1, 1].into());
+            assert_eq!(fs[1].0, vec![3, 2, 3, 1, 1, 1].into());
+            assert_eq!(fs[2].0, vec![2, 0, 2, 2, 2, 2].into());
+            assert_eq!(fs[3].0, vec![2, 2, 2, 0, 0, 0].into());
+            assert_eq!(fs[4].0, vec![1, 1, 1, 0, 0, 0].into());
+            assert_eq!(fs[5].0, vec![3, 1, 3, 2, 2, 2].into());
+
+            let fs = enumerate_neighboring_flows(&g, &f0, Some(5), Some(0));
+            for (f, ui) in fs.iter() {
+                println!("fa={} ui={:?}", f, ui);
+            }
+            assert_eq!(fs.len(), 4);
+        }
     }
 }
