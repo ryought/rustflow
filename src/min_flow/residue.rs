@@ -315,7 +315,7 @@ fn apply_residual_edges_to_flow<F: FlowRateLike>(
 ///    -e
 /// ```
 ///
-fn is_meaningful_move_on_residue_graph<F: FlowRateLike>(
+pub fn is_meaningful_move_on_residue_graph<F: FlowRateLike>(
     rg: &ResidueGraph<F>,
     e_a: EdgeIndex,
     e_b: EdgeIndex,
@@ -325,6 +325,57 @@ fn is_meaningful_move_on_residue_graph<F: FlowRateLike>(
     let target_is_different = ew_a.target != ew_b.target;
     let dir_is_same = ew_a.direction == ew_b.direction;
     target_is_different || dir_is_same
+}
+
+///
+/// `U`: ResidueDirection::Up, `D`: ResidueDirection::Down
+///
+/// | edges  | edge | n_flip |
+/// | ------ | ---- | ------ |
+/// |        | D    | 0      |
+/// |        | U    | 0      |
+/// | UUU    | U    | 0      |
+/// | UUU    | D    | 1      |
+/// | UUUDDD | D    | 1      |
+/// | UUUDDD | U    | 2      |
+/// | UUUDDD | D    | 1      |
+/// | UUDDUU | U    | 2      |
+/// | UUDDUU | D    | 3      |
+///
+pub fn is_within_max_flip<F: FlowRateLike>(
+    rg: &ResidueGraph<F>,
+    edges: &[EdgeIndex],
+    edge: EdgeIndex,
+    max_flip: Option<usize>,
+) -> bool {
+    if edges.is_empty() {
+        return true;
+    }
+    match max_flip {
+        None => true,
+        Some(max_flip) => {
+            let mut n_flip = 0;
+            for i in 0..edges.len() {
+                // if direction of edges[i-1]/edge[i] is different, increment n_flip
+                let d0 = rg[edges[i]].direction;
+                let d1 = if i == edges.len() - 1 {
+                    rg[edge].direction
+                } else {
+                    rg[edges[i + 1]].direction
+                };
+                if d0 != d1 {
+                    n_flip += 1;
+                }
+            }
+
+            if n_flip <= max_flip {
+                // current n_flip is below the max_flip
+                true
+            } else {
+                false
+            }
+        }
+    }
 }
 
 ///
@@ -341,10 +392,14 @@ pub fn flow_diff_to_residue<F: FlowRateLike, N, E: FlowEdge<F> + ConstCost>(
 ///
 /// list up all neighboring flows
 ///
+/// * max_cycle_size: maximum number of edges in a cycle
+/// * max_flip: maximum number of flips (Down->Up or Up->Down) in a cycle
+///
 pub fn enumerate_neighboring_flows_in_residue<F: FlowRateLike>(
     rg: &ResidueGraph<F>,
     flow: &Flow<F>,
     max_cycle_size: Option<usize>,
+    max_flip: Option<usize>,
 ) -> Vec<(Flow<F>, UpdateInfo)> {
     // println!("{:?}", petgraph::dot::Dot::with_config(&rg, &[]));
     let simple_cycles = match max_cycle_size {
@@ -354,6 +409,7 @@ pub fn enumerate_neighboring_flows_in_residue<F: FlowRateLike>(
             } else {
                 let last_edge = edges.last().copied().unwrap();
                 is_meaningful_move_on_residue_graph(&rg, last_edge, edge)
+                    && is_within_max_flip(&rg, edges, edge, max_flip)
             }
         }),
         // TODO Johnson algorithm does not support parallel edges
@@ -566,6 +622,8 @@ pub fn improve_flow<F: FlowRateLike, N, E: FlowEdge<F> + ConstCost>(
     }
 }
 
+///
+/// `UpdateInfo` = `Vec<(EdgeIndex, ResidueDirection)>`
 ///
 /// information of updating a edge of either direction?
 ///

@@ -226,13 +226,14 @@ pub fn enumerate_neighboring_flows<F, N, E>(
     graph: &DiGraph<N, E>,
     flow: &Flow<F>,
     max_depth: Option<usize>,
+    max_flip: Option<usize>,
 ) -> Vec<(Flow<F>, UpdateInfo)>
 where
     F: FlowRateLike,
     E: FlowEdge<F> + ConvexCost<F>,
 {
     let rg = flow_to_residue_convex(graph, flow);
-    enumerate_neighboring_flows_in_residue(&rg, flow, max_depth)
+    enumerate_neighboring_flows_in_residue(&rg, flow, max_depth, max_flip)
 }
 
 //
