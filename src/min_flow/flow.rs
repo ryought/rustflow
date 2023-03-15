@@ -53,6 +53,50 @@ impl<F: FlowRateLike> std::ops::IndexMut<EdgeIndex> for Flow<F> {
     }
 }
 
+impl<F: FlowRateLike> std::fmt::Display for Flow<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "[")?;
+        for i in 0..self.len() {
+            if i != 0 {
+                write!(f, ",")?;
+            }
+            write!(f, "{}", self.0[i])?;
+        }
+        write!(f, "]")?;
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FlowParseError;
+
+impl<F: FlowRateLike> std::str::FromStr for Flow<F> {
+    type Err = FlowParseError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.strip_prefix('[') {
+            None => Err(FlowParseError),
+            Some(s) => match s.strip_suffix(']') {
+                None => Err(FlowParseError),
+                Some(s) => {
+                    let mut v = Vec::new();
+                    if s.len() == 0 {
+                        return Ok(Flow(v));
+                    }
+                    for e in s.split(',') {
+                        match e.parse() {
+                            Err(_) => return Err(FlowParseError),
+                            Ok(x) => {
+                                v.push(x);
+                            }
+                        }
+                    }
+                    Ok(Flow(v))
+                }
+            },
+        }
+    }
+}
+
 ///
 /// Check if the flow is valid, i.e. it satisfies
 /// - flows of all edges are defined
@@ -199,6 +243,7 @@ mod tests {
     use super::super::utils::draw;
     use super::*;
     use petgraph::graph::EdgeIndex;
+    use std::str::FromStr;
 
     #[test]
     fn flow_valid_tests() {
@@ -230,5 +275,32 @@ mod tests {
         let f4 = vec![1].into();
         assert!(!is_defined_for_all_edges(&f4, &g));
         assert!(!is_valid_flow(&f4, &g));
+    }
+
+    #[test]
+    fn flow_stringify() {
+        {
+            let f: Flow<usize> = vec![5, 5, 5].into();
+            println!("{}", f);
+            assert_eq!(f, Flow::from_str(&f.to_string()).unwrap());
+        }
+
+        {
+            let f: Flow<usize> = vec![].into();
+            println!("{}", f);
+            assert_eq!(f, Flow::from_str(&f.to_string()).unwrap());
+        }
+
+        {
+            let f: Flow<usize> = vec![1].into();
+            println!("{}", f);
+            assert_eq!(f, Flow::from_str(&f.to_string()).unwrap());
+        }
+
+        {
+            let f: Flow<f64> = vec![10.2, 45.2, 2.2, 3.2].into();
+            println!("{}", f);
+            assert_eq!(f, Flow::from_str(&f.to_string()).unwrap());
+        }
     }
 }

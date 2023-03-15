@@ -23,6 +23,7 @@ pub trait FlowRateLike:
     + Default
     + std::fmt::Debug
     + std::fmt::Display
+    + std::str::FromStr
 {
     /// zero value = 0
     fn zero() -> Self;
