@@ -220,6 +220,8 @@ where
 ///
 /// enumerate neighboring flows of current flow on MinFlowNetwork.
 ///
+/// `Flow` and `UpdateInfo = Vec<(EdgeIndex, ResidueDirection)>`
+///
 pub fn enumerate_neighboring_flows<F, N, E>(
     graph: &DiGraph<N, E>,
     flow: &Flow<F>,
