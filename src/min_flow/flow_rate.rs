@@ -40,6 +40,7 @@ pub trait FlowRateLike:
     fn sim_eq(self, rhs: Self) -> bool;
     /// difference allowed to be regarded as a same value
     fn eps() -> Self;
+    fn abs_diff(self, other: Self) -> Self;
 }
 
 impl FlowRateLike for usize {
@@ -70,6 +71,9 @@ impl FlowRateLike for usize {
     }
     fn eps() -> Self {
         0
+    }
+    fn abs_diff(self, other: Self) -> Self {
+        self.abs_diff(other)
     }
 }
 
@@ -103,5 +107,8 @@ impl FlowRateLike for f64 {
     }
     fn eps() -> Self {
         0.000000001
+    }
+    fn abs_diff(self, other: Self) -> Self {
+        (self - other).abs()
     }
 }

@@ -26,6 +26,14 @@ impl<F: FlowRateLike> Flow<F> {
     pub fn len(&self) -> usize {
         self.0.len()
     }
+    pub fn diff(&self, other: &Flow<F>) -> F {
+        assert_eq!(self.len(), other.len());
+        let mut diff = F::zero();
+        for i in 0..self.len() {
+            diff += self.0[i].abs_diff(other.0[i]);
+        }
+        diff
+    }
 }
 
 impl<F: FlowRateLike> std::convert::Into<Vec<F>> for Flow<F> {
@@ -302,5 +310,19 @@ mod tests {
             println!("{}", f);
             assert_eq!(f, Flow::from_str(&f.to_string()).unwrap());
         }
+    }
+
+    #[test]
+    fn flow_diff() {
+        let f: Flow<usize> = vec![5, 5, 5].into();
+        let g: Flow<usize> = vec![5, 7, 1].into();
+        assert_eq!(f.diff(&g), 6);
+        assert_eq!(f.diff(&f), 0);
+
+        let f: Flow<f64> = vec![5.0, 5.0, 5.0].into();
+        let g: Flow<f64> = vec![5.0, 7.0, 1.0].into();
+        println!("f={} g={}", f, g);
+        assert_eq!(f.diff(&g), 6.0);
+        assert_eq!(f.diff(&f), 0.0);
     }
 }
