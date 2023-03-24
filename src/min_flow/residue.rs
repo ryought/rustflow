@@ -91,6 +91,17 @@ impl std::fmt::Display for ResidueDirection {
     }
 }
 
+impl std::str::FromStr for ResidueDirection {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "+" => Ok(ResidueDirection::Up),
+            "-" => Ok(ResidueDirection::Down),
+            _ => Err(()),
+        }
+    }
+}
+
 ///
 /// List of ResidueDirection (n-times "+" and m-times "-") into total changes (n-m)
 ///
@@ -697,10 +708,12 @@ mod tests {
         let up = ResidueDirection::Up;
         assert_eq!(up.to_string(), "+");
         assert_eq!(up.int(), 1);
+        assert_eq!("+".parse::<ResidueDirection>().unwrap(), up);
 
         let down = ResidueDirection::Down;
         assert_eq!(down.to_string(), "-");
         assert_eq!(down.int(), -1);
+        assert_eq!("-".parse::<ResidueDirection>().unwrap(), down);
 
         let directions = vec![
             ResidueDirection::Down,
