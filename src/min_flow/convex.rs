@@ -318,16 +318,73 @@ fn mock_convex_flow_graph3() -> ConvexFlowGraph<usize> {
     g
 }
 
+///
+///
+/// ```text
+/// G:
+///                      e2 (1,5)
+///              ┌──────────────────────────────┐
+///              │                              │
+///              │                             ┌▼─┐
+///              │                      ┌──────┤v2├──────┐
+///              │                    e3│      └──┘      │e5 (0,+inf)
+///             ┌┴─┐              (1,4) │                │
+///          ┌──▶v1◀──┐                 │              ┌─▼┐
+///          │  └──┘  │                 │              │v4│
+///          │        │                ┌▼─┐            └─┬┘
+///        e0│        │e1              │v3│              │e6 (0,+inf)
+///  (0,+inf)│        │(1,5)           └┬─┘            ┌─▼┐
+///          │        │                 │              │v5│
+///          │  ┌──┐  │               e4│              └─┬┘
+///          └──┤v0├──┘           (1,4) │                │
+///             └▲─┘                    │      ┌──┐      │e7 (0,+inf)
+///              │                      └──────▶v6◀──────┘
+///              │                             └┬─┘
+///              │                              │
+///              └──────────────────────────────┘
+///                      e8 (0,+inf)
+/// ```
+///
+#[allow(dead_code)]
+fn mock_network_neighbor() -> (ConvexFlowGraph<usize>, Flow<usize>) {
+    let mut graph = ConvexFlowGraph::new();
+
+    // nodes
+    let v0 = graph.add_node(());
+    let v1 = graph.add_node(());
+    let v2 = graph.add_node(());
+    let v3 = graph.add_node(());
+    let v4 = graph.add_node(());
+    let v5 = graph.add_node(());
+    let v6 = graph.add_node(());
+
+    // edges
+    let inf = 100;
+    let e0 = graph.add_edge(v0, v1, cfe(0, inf, |_| 0.0));
+    let e1 = graph.add_edge(v0, v1, cfe(1, 5, |_| 0.0));
+    let e2 = graph.add_edge(v1, v2, cfe(1, 5, |_| 0.0));
+    let e3 = graph.add_edge(v2, v3, cfe(1, 4, |_| 0.0));
+    let e4 = graph.add_edge(v3, v6, cfe(1, 4, |_| 0.0));
+    let e5 = graph.add_edge(v2, v4, cfe(0, inf, |_| 0.0));
+    let e6 = graph.add_edge(v4, v5, cfe(0, inf, |_| 0.0));
+    let e7 = graph.add_edge(v5, v6, cfe(0, inf, |_| 0.0));
+    let e8 = graph.add_edge(v6, v0, cfe(0, inf, |_| 0.0));
+
+    let flow = vec![0, 2, 2, 1, 1, 1, 1, 1, 1].into();
+    (graph, flow)
+}
+
 //
 // tests
 //
 
 #[cfg(test)]
 mod tests {
+    use super::super::residue::ResidueDirection;
     use super::super::utils::{draw, draw_with_flow};
     use super::super::{
-        enumerate_neighboring_flows, min_cost_flow, min_cost_flow_convex,
-        min_cost_flow_convex_fast, EdgeCost,
+        enumerate_neighboring_flows, find_neighboring_flow_by_edge_change, min_cost_flow,
+        min_cost_flow_convex, min_cost_flow_convex_fast, EdgeCost,
     };
     use super::*;
 
@@ -436,5 +493,12 @@ mod tests {
             }
             assert_eq!(fs.len(), 4);
         }
+    }
+    #[test]
+    fn edge_change_mock() {
+        let (g, f0) = mock_network_neighbor();
+        let f =
+            find_neighboring_flow_by_edge_change(&g, &f0, EdgeIndex::new(0), ResidueDirection::Up);
+        println!("{:?}", f);
     }
 }

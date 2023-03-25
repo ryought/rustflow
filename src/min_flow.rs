@@ -54,10 +54,11 @@ pub use flow_rate::FlowRateLike;
 use convex::{restore_convex_flow, to_fixed_flow_graph};
 pub use flow::total_cost;
 use flow::{assert_valid_flow, is_valid_flow};
-use petgraph::graph::DiGraph;
+use petgraph::graph::{DiGraph, EdgeIndex};
 use residue::{
-    enumerate_neighboring_flows_in_residue, flow_to_residue_convex, improve_flow,
-    improve_flow_convex, CycleDetectMethod, UpdateInfo,
+    enumerate_neighboring_flows_in_residue, find_neighboring_flow_by_edge_change_in_residue,
+    flow_to_residue_convex, improve_flow, improve_flow_convex, CycleDetectMethod, ResidueDirection,
+    UpdateInfo,
 };
 use zero_demand::{find_initial_flow, is_zero_demand_flow_graph};
 // use convex::is_convex_cost_flow_graph;
@@ -234,6 +235,27 @@ where
 {
     let rg = flow_to_residue_convex(graph, flow);
     enumerate_neighboring_flows_in_residue(&rg, flow, max_depth, max_flip)
+}
+
+///
+/// Find the neighboring flow where the flow of the edge `edge: EdgeIndex` is changed in the
+/// direction of `direction: ResidueDirection`.
+///
+/// Find the minimum cycle of a single direction passing through the `(edge, direction)` edge in
+/// the residual network using A* algorithm and update the flow accordingly.
+///
+pub fn find_neighboring_flow_by_edge_change<F, N, E>(
+    graph: &DiGraph<N, E>,
+    flow: &Flow<F>,
+    edge: EdgeIndex,
+    direction: ResidueDirection,
+) -> Option<(Flow<F>, UpdateInfo)>
+where
+    F: FlowRateLike,
+    E: FlowEdge<F> + ConvexCost<F>,
+{
+    let rg = flow_to_residue_convex(graph, flow);
+    find_neighboring_flow_by_edge_change_in_residue(&rg, flow, edge, direction)
 }
 
 //

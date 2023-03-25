@@ -8,6 +8,7 @@ use super::flow::{EdgeCost, Flow};
 use super::utils::draw;
 use super::{ConstCost, Cost, FlowEdge, FlowRateLike};
 use itertools::Itertools; // for tuple_windows
+use petgraph::algo::astar;
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use petgraph::prelude::*;
 use petgraph::visit::VisitMap;
@@ -443,6 +444,93 @@ pub fn enumerate_neighboring_flows_in_residue<F: FlowRateLike>(
         .collect();
     // eprintln!("# n_flows={}", flows.len());
     flows
+}
+
+///
+/// Convert a path as nodes into a path as edges
+///
+/// Assume path is not a circular, so path[n-1] and path[0] will not be connected.
+///
+pub fn node_path_to_edge_path<F: FlowRateLike>(
+    rg: &ResidueGraph<F>,
+    node_path: &[NodeIndex],
+    direction: ResidueDirection,
+) -> Vec<EdgeIndex> {
+    let mut edge_path = Vec::new();
+    let n = node_path.len();
+
+    // convert (nodes[i], nodes[i+1]) into an edge
+    for i in 0..(n - 1) {
+        let v = node_path[i];
+        let w = node_path[i + 1];
+        let e = rg
+            .edges_connecting(v, w)
+            .find(|e| e.weight().direction == direction)
+            .map(|e| e.id())
+            .expect("node path is invalid, no edge between p[i] and p[i+1]");
+        edge_path.push(e);
+    }
+
+    edge_path
+}
+
+///
+/// Find a neighboring flow by finding the minimum cycle of a single direction passing through
+/// the `(edge, direction)` edge in the residual network using A* algorithm and update the flow accordingly.
+///
+pub fn find_neighboring_flow_by_edge_change_in_residue<F: FlowRateLike>(
+    rg: &ResidueGraph<F>,
+    flow: &Flow<F>,
+    edge: EdgeIndex,
+    direction: ResidueDirection,
+) -> Option<(Flow<F>, UpdateInfo)> {
+    // find the corresponding edge (edge, direction) in residue graph
+    let e = rg
+        .edge_references()
+        .find(|e| e.weight().target == edge && e.weight().direction == direction)
+        .map(|e| e.id());
+
+    match e {
+        Some(e) => {
+            // find the minimum cycle passing through e = (v, w)
+            //
+            let (v, w) = rg.edge_endpoints(e).unwrap();
+            //
+            // find the shortest path from w to v
+            //
+            let path = astar(
+                rg,
+                w,
+                |finish| finish == v,
+                |e| {
+                    if e.weight().direction == direction {
+                        1
+                    } else {
+                        usize::MAX
+                    }
+                },
+                |_| 0,
+            )
+            .map(|(_, nodes)| node_path_to_edge_path(rg, &nodes, direction));
+
+            match path {
+                Some(mut edges) => {
+                    // join e (from node v into node w) and path (from node w into node v)
+                    edges.insert(0, e);
+                    assert!(is_cycle(&rg, &edges));
+                    assert!(is_edge_simple(&rg, &edges));
+
+                    // convert the cycle into flow and updateinfo
+                    Some((
+                        apply_residual_edges_to_flow(flow, rg, &edges),
+                        cycle_in_residue_graph_into_update_info(rg, &edges),
+                    ))
+                }
+                None => None,
+            }
+        }
+        None => None,
+    }
 }
 
 #[derive(Clone, Debug, Copy)]
