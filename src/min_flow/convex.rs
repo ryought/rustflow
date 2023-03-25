@@ -553,5 +553,28 @@ mod tests {
                 ]
             ))
         );
+
+        let f = find_neighboring_flow_by_edge_change(
+            &g,
+            &f0,
+            EdgeIndex::new(0),
+            ResidueDirection::Up,
+            |e| if e == ei(3) { 100 } else { 1 },
+        );
+        println!("{:?}", f);
+        assert_eq!(
+            f,
+            Some((
+                vec![1, 2, 3, 1, 1, 2, 2, 2, 3].into(),
+                vec![
+                    (ei(0), ResidueDirection::Up),
+                    (ei(2), ResidueDirection::Up),
+                    (ei(5), ResidueDirection::Up),
+                    (ei(6), ResidueDirection::Up),
+                    (ei(7), ResidueDirection::Up),
+                    (ei(8), ResidueDirection::Up),
+                ]
+            ))
+        );
     }
 }
