@@ -499,8 +499,13 @@ mod tests {
     #[test]
     fn edge_change_mock() {
         let (g, f0) = mock_network_neighbor();
-        let f =
-            find_neighboring_flow_by_edge_change(&g, &f0, EdgeIndex::new(0), ResidueDirection::Up);
+        let f = find_neighboring_flow_by_edge_change(
+            &g,
+            &f0,
+            EdgeIndex::new(0),
+            ResidueDirection::Up,
+            |_| 1,
+        );
         println!("{:?}", f);
         assert_eq!(
             f,
@@ -521,6 +526,7 @@ mod tests {
             &f0,
             EdgeIndex::new(0),
             ResidueDirection::Down,
+            |_| 1,
         );
         println!("{:?}", f);
         assert!(f.is_none());
@@ -530,6 +536,7 @@ mod tests {
             &f0,
             EdgeIndex::new(7),
             ResidueDirection::Down,
+            |_| 1,
         );
         println!("{:?}", f);
         assert_eq!(

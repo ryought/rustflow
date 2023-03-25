@@ -479,12 +479,19 @@ pub fn node_path_to_edge_path<F: FlowRateLike>(
 /// Find a neighboring flow by finding the minimum cycle of a single direction passing through
 /// the `(edge, direction)` edge in the residual network using A* algorithm and update the flow accordingly.
 ///
-pub fn find_neighboring_flow_by_edge_change_in_residue<F: FlowRateLike>(
+/// weight `W: Fn(EdgeIndex) -> usize` is (non-negative integer) weight function of edges.
+///
+pub fn find_neighboring_flow_by_edge_change_in_residue<F, W>(
     rg: &ResidueGraph<F>,
     flow: &Flow<F>,
     edge: EdgeIndex,
     direction: ResidueDirection,
-) -> Option<(Flow<F>, UpdateInfo)> {
+    weight: W,
+) -> Option<(Flow<F>, UpdateInfo)>
+where
+    F: FlowRateLike,
+    W: Fn(EdgeIndex) -> usize,
+{
     // find the corresponding edge (edge, direction) in residue graph
     let e = rg
         .edge_references()
@@ -505,7 +512,7 @@ pub fn find_neighboring_flow_by_edge_change_in_residue<F: FlowRateLike>(
                 |finish| finish == v,
                 |e| {
                     if e.weight().direction == direction {
-                        Saturating(1)
+                        Saturating(weight(e.weight().target))
                     } else {
                         Saturating(usize::MAX)
                     }

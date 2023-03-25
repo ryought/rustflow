@@ -244,18 +244,20 @@ where
 /// Find the minimum cycle of a single direction passing through the `(edge, direction)` edge in
 /// the residual network using A* algorithm and update the flow accordingly.
 ///
-pub fn find_neighboring_flow_by_edge_change<F, N, E>(
+pub fn find_neighboring_flow_by_edge_change<F, N, E, W>(
     graph: &DiGraph<N, E>,
     flow: &Flow<F>,
     edge: EdgeIndex,
     direction: ResidueDirection,
+    weight: W,
 ) -> Option<(Flow<F>, UpdateInfo)>
 where
     F: FlowRateLike,
     E: FlowEdge<F> + ConvexCost<F>,
+    W: Fn(EdgeIndex) -> usize,
 {
     let rg = flow_to_residue_convex(graph, flow);
-    find_neighboring_flow_by_edge_change_in_residue(&rg, flow, edge, direction)
+    find_neighboring_flow_by_edge_change_in_residue(&rg, flow, edge, direction, weight)
 }
 
 //
