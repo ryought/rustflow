@@ -20,6 +20,7 @@ use petgraph_algos::common::{
 use petgraph_algos::cycle_enumeration::{simple_cycles, simple_k_cycles_with_cond};
 use petgraph_algos::min_mean_weight_cycle::edge_cond::find_negative_cycle_with_edge_cond;
 use std::cmp::Ordering;
+use std::num::Saturating;
 
 // basic definitions
 
@@ -504,12 +505,12 @@ pub fn find_neighboring_flow_by_edge_change_in_residue<F: FlowRateLike>(
                 |finish| finish == v,
                 |e| {
                     if e.weight().direction == direction {
-                        1
+                        Saturating(1)
                     } else {
-                        usize::MAX
+                        Saturating(usize::MAX)
                     }
                 },
-                |_| 0,
+                |_| Saturating(0),
             )
             .map(|(_, nodes)| node_path_to_edge_path(rg, &nodes, direction));
 

@@ -3,7 +3,7 @@
 //!
 pub mod fast;
 use super::base::FlowEdgeRaw;
-use super::flow::Flow;
+use super::flow::{assert_valid_flow, Flow};
 use super::utils::{clamped_log, is_increasing, range};
 use super::{Cost, FlowEdge, FlowRateLike};
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
@@ -322,27 +322,27 @@ fn mock_convex_flow_graph3() -> ConvexFlowGraph<usize> {
 ///
 /// ```text
 /// G:
-///                      e2 (1,5)
+///                      e2 (1,5) 2
 ///              ┌──────────────────────────────┐
 ///              │                              │
 ///              │                             ┌▼─┐
 ///              │                      ┌──────┤v2├──────┐
-///              │                    e3│      └──┘      │e5 (0,+inf)
+///              │                    e3│      └──┘      │e5 (0,+inf) 1
 ///             ┌┴─┐              (1,4) │                │
-///          ┌──▶v1◀──┐                 │              ┌─▼┐
+///          ┌──▶v1◀──┐              1  │              ┌─▼┐
 ///          │  └──┘  │                 │              │v4│
 ///          │        │                ┌▼─┐            └─┬┘
-///        e0│        │e1              │v3│              │e6 (0,+inf)
+///        e0│        │e1              │v3│              │e6 (0,+inf) 1
 ///  (0,+inf)│        │(1,5)           └┬─┘            ┌─▼┐
-///          │        │                 │              │v5│
+///        0 │        │ 2               │              │v5│
 ///          │  ┌──┐  │               e4│              └─┬┘
 ///          └──┤v0├──┘           (1,4) │                │
-///             └▲─┘                    │      ┌──┐      │e7 (0,+inf)
+///             └▲─┘                 1  │      ┌──┐      │e7 (0,+inf) 1
 ///              │                      └──────▶v6◀──────┘
 ///              │                             └┬─┘
 ///              │                              │
 ///              └──────────────────────────────┘
-///                      e8 (0,+inf)
+///                      e8 (0,+inf) 2
 /// ```
 ///
 #[allow(dead_code)]
@@ -370,7 +370,8 @@ fn mock_network_neighbor() -> (ConvexFlowGraph<usize>, Flow<usize>) {
     let e7 = graph.add_edge(v5, v6, cfe(0, inf, |_| 0.0));
     let e8 = graph.add_edge(v6, v0, cfe(0, inf, |_| 0.0));
 
-    let flow = vec![0, 2, 2, 1, 1, 1, 1, 1, 1].into();
+    let flow = vec![0, 2, 2, 1, 1, 1, 1, 1, 2].into();
+    assert_valid_flow(&flow, &graph);
     (graph, flow)
 }
 
@@ -387,6 +388,7 @@ mod tests {
         min_cost_flow_convex, min_cost_flow_convex_fast, EdgeCost,
     };
     use super::*;
+    use petgraph_algos::common::ei;
 
     #[test]
     fn convex_flow_edge_new() {
@@ -500,5 +502,49 @@ mod tests {
         let f =
             find_neighboring_flow_by_edge_change(&g, &f0, EdgeIndex::new(0), ResidueDirection::Up);
         println!("{:?}", f);
+        assert_eq!(
+            f,
+            Some((
+                vec![1, 2, 3, 2, 2, 1, 1, 1, 3].into(),
+                vec![
+                    (ei(0), ResidueDirection::Up),
+                    (ei(2), ResidueDirection::Up),
+                    (ei(3), ResidueDirection::Up),
+                    (ei(4), ResidueDirection::Up),
+                    (ei(8), ResidueDirection::Up),
+                ]
+            ))
+        );
+
+        let f = find_neighboring_flow_by_edge_change(
+            &g,
+            &f0,
+            EdgeIndex::new(0),
+            ResidueDirection::Down,
+        );
+        println!("{:?}", f);
+        assert!(f.is_none());
+
+        let f = find_neighboring_flow_by_edge_change(
+            &g,
+            &f0,
+            EdgeIndex::new(7),
+            ResidueDirection::Down,
+        );
+        println!("{:?}", f);
+        assert_eq!(
+            f,
+            Some((
+                vec![0, 1, 1, 1, 1, 0, 0, 0, 1].into(),
+                vec![
+                    (ei(7), ResidueDirection::Down),
+                    (ei(6), ResidueDirection::Down),
+                    (ei(5), ResidueDirection::Down),
+                    (ei(2), ResidueDirection::Down),
+                    (ei(1), ResidueDirection::Down),
+                    (ei(8), ResidueDirection::Down),
+                ]
+            ))
+        );
     }
 }
