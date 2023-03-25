@@ -244,6 +244,8 @@ where
 /// Find the minimum cycle of a single direction passing through the `(edge, direction)` edge in
 /// the residual network using A* algorithm and update the flow accordingly.
 ///
+/// weight `W: Fn(EdgeIndex) -> usize` is (non-negative integer) weight function of edges.
+///
 pub fn find_neighboring_flow_by_edge_change<F, N, E, W>(
     graph: &DiGraph<N, E>,
     flow: &Flow<F>,
