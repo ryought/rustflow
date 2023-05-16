@@ -319,7 +319,7 @@ fn apply_residual_edges_to_flow<F: FlowRateLike>(
 ///
 ///
 ///
-fn residue_graph_cycle_to_flow<F: FlowRateLike>(
+pub fn residue_graph_cycle_to_flow<F: FlowRateLike>(
     flow: &Flow<F>,
     residue_graph: &ResidueGraph<F>,
     cycle_in_residue_graph: &[EdgeIndex],
