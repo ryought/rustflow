@@ -317,6 +317,20 @@ fn apply_residual_edges_to_flow<F: FlowRateLike>(
 }
 
 ///
+///
+///
+fn residue_graph_cycle_to_flow<F: FlowRateLike>(
+    flow: &Flow<F>,
+    residue_graph: &ResidueGraph<F>,
+    cycle_in_residue_graph: &[EdgeIndex],
+) -> (Flow<F>, UpdateInfo) {
+    (
+        apply_residual_edges_to_flow(flow, residue_graph, cycle_in_residue_graph),
+        cycle_in_residue_graph_into_update_info(residue_graph, cycle_in_residue_graph),
+    )
+}
+
+///
 /// Simple heuristic to avoid searching meaningless cycles on ResidueGraph.
 ///
 /// Prohibiting move below:
@@ -435,12 +449,7 @@ pub fn enumerate_neighboring_flows_in_residue<F: FlowRateLike>(
     // eprintln!("# n_simple_cycles={}", simple_cycles.len());
     let flows: Vec<_> = simple_cycles
         .into_iter()
-        .map(|cycle| {
-            (
-                apply_residual_edges_to_flow(flow, rg, cycle.edges()),
-                cycle_in_residue_graph_into_update_info(rg, cycle.edges()),
-            )
-        })
+        .map(|cycle| residue_graph_cycle_to_flow(flow, rg, cycle.edges()))
         .filter(|(new_flow, _update_info)| new_flow != flow)
         .collect();
     // eprintln!("# n_flows={}", flows.len());
@@ -529,10 +538,7 @@ where
                     assert!(is_edge_simple(&rg, &edges));
 
                     // convert the cycle into flow and updateinfo
-                    Some((
-                        apply_residual_edges_to_flow(flow, rg, &edges),
-                        cycle_in_residue_graph_into_update_info(rg, &edges),
-                    ))
+                    Some(residue_graph_cycle_to_flow(flow, rg, &edges))
                 }
                 None => None,
             }
