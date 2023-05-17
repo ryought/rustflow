@@ -611,8 +611,12 @@ pub fn find_negative_cycle_as_edges<N, E>(
 where
     E: FloatWeight,
 {
-    bellman_ford::find_negative_cycle(graph, source)
-        .map(|nodes| node_list_to_edge_list(graph, &nodes))
+    bellman_ford::find_negative_cycle(graph, source).map(|nodes| {
+        println!("cycle found nodes={:?}", nodes);
+        let edges = node_list_to_edge_list(graph, &nodes);
+        println!("cycle found edges={:?}", edges);
+        edges
+    })
 }
 
 fn format_cycle<F: FlowRateLike>(rg: &ResidueGraph<F>, cycle: &[EdgeIndex]) -> String {

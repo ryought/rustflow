@@ -34,9 +34,9 @@ checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 
 [[package]]
 name = "indexmap"
-version = "1.9.2"
+version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1885e79c1fc4b10f0e172c475f458b7f7b93061064d98c3293e98c5ba0c8b399"
+checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
  "hashbrown",
@@ -64,7 +64,7 @@ dependencies = [
 [[package]]
 name = "petgraph_algos"
 version = "0.1.0"
-source = "git+https://github.com/ryought/petgraph_algos#c0977fda2d33b57aa875b3ceeb23141b13f0b1d6"
+source = "git+https://github.com/ryought/petgraph_algos#e7cdda083b13021c2bb53f6b6d1cee2fe0138fb1"
 dependencies = [
  "fnv",
  "itertools",
