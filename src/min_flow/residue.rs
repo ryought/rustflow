@@ -644,8 +644,9 @@ pub fn improve_residue_graph<F: FlowRateLike>(
     method: CycleDetectMethod,
 ) -> Option<Vec<EdgeIndex>> {
     // find negative weight cycles
-    let path = find_negative_cycle_in_whole_graph(&rg, method);
+    println!("[improve]");
     draw(&rg);
+    let path = find_negative_cycle_in_whole_graph(&rg, method);
 
     match path {
         Some(edges) => {
