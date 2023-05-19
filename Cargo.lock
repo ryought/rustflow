@@ -64,7 +64,7 @@ dependencies = [
 [[package]]
 name = "petgraph_algos"
 version = "0.1.0"
-source = "git+https://github.com/ryought/petgraph_algos#dc55ce8330da6ea03828fbadc89c77f115069de4"
+source = "git+https://github.com/ryought/petgraph_algos#ae83a849cb50f1bda7f34d768cf06ddbb77515e8"
 dependencies = [
  "fnv",
  "itertools",
