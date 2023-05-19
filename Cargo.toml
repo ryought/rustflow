@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 petgraph = "0.6.0"
 itertools = "0.10"
-# petgraph_algos = { git = "https://github.com/ryought/petgraph_algos" }
-petgraph_algos = { path = "../petgraph_algos" }
+petgraph_algos = { git = "https://github.com/ryought/petgraph_algos" }
+# petgraph_algos = { path = "../petgraph_algos" }
