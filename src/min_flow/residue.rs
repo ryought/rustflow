@@ -12,13 +12,13 @@ use petgraph::algo::astar;
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
 use petgraph::prelude::*;
 use petgraph::visit::VisitMap;
-use petgraph_algos::bellman_ford;
 use petgraph_algos::common::{
     edge_cycle_to_node_cycle, is_cycle, is_edge_simple, is_negative_cycle, node_list_to_edge_list,
     remove_all_parallel_edges, total_weight, FloatWeight,
 };
 use petgraph_algos::cycle_enumeration::{simple_cycles, simple_k_cycles_with_cond};
 use petgraph_algos::min_mean_weight_cycle::edge_cond::find_negative_cycle_with_edge_cond;
+use petgraph_algos::my_bellman_ford;
 use std::cmp::Ordering;
 use std::num::Saturating;
 
@@ -611,12 +611,8 @@ pub fn find_negative_cycle_as_edges<N, E>(
 where
     E: FloatWeight,
 {
-    bellman_ford::find_negative_cycle(graph, source).map(|nodes| {
-        println!("cycle found nodes={:?}", nodes);
-        let edges = node_list_to_edge_list(graph, &nodes);
-        println!("cycle found edges={:?}", edges);
-        edges
-    })
+    my_bellman_ford::find_negative_cycle(graph, source)
+        .map(|nodes| node_list_to_edge_list(graph, &nodes))
 }
 
 fn format_cycle<F: FlowRateLike>(rg: &ResidueGraph<F>, cycle: &[EdgeIndex]) -> String {
@@ -644,8 +640,7 @@ pub fn improve_residue_graph<F: FlowRateLike>(
     method: CycleDetectMethod,
 ) -> Option<Vec<EdgeIndex>> {
     // find negative weight cycles
-    println!("[improve]");
-    draw(&rg);
+    // draw(&rg);
     let path = find_negative_cycle_in_whole_graph(&rg, method);
 
     match path {
@@ -733,7 +728,8 @@ pub fn improve_flow<F: FlowRateLike, N, E: FlowEdge<F> + ConstCost>(
     flow: &Flow<F>,
     method: CycleDetectMethod,
 ) -> Option<Flow<F>> {
-    let rg = flow_to_residue(graph, flow);
+    let mut rg = flow_to_residue(graph, flow);
+    remove_all_parallel_edges(&mut rg);
     match update_flow_in_residue_graph(flow, &rg, method) {
         Some((new_flow, _)) => Some(new_flow),
         None => None,
@@ -776,7 +772,8 @@ where
     F: FlowRateLike,
     E: FlowEdge<F> + ConvexCost<F>,
 {
-    let rg = flow_to_residue_convex(graph, flow);
+    let mut rg = flow_to_residue_convex(graph, flow);
+    remove_all_parallel_edges(&mut rg);
     match update_flow_in_residue_graph(flow, &rg, method) {
         Some((new_flow, cycle)) => Some((
             new_flow,
@@ -797,7 +794,8 @@ where
     F: FlowRateLike,
     E: FlowEdge<F> + ConvexCost<F>,
 {
-    let rg = flow_to_residue_convex(graph, flow);
+    let mut rg = flow_to_residue_convex(graph, flow);
+    remove_all_parallel_edges(&mut rg);
     match update_flow_in_residue_graph(flow, &rg, method) {
         Some((new_flow, _)) => Some(new_flow),
         None => None,

@@ -405,7 +405,7 @@ mod tests {
     }
 
     #[test]
-    fn convex_flow_graph_mock1() {
+    fn convex_flow_graph_mock1_naive() {
         let (g, f_true) = mock_convex_flow_graph1();
         let fg = to_fixed_flow_graph(&g).unwrap();
         let fg_flow = min_cost_flow(&fg).unwrap();
