@@ -743,6 +743,44 @@ pub fn improve_flow<F: FlowRateLike, N, E: FlowEdge<F> + ConstCost>(
 ///
 pub type UpdateInfo = Vec<(EdgeIndex, ResidueDirection)>;
 
+/// Stringify `UpdateInfo = Vec<(EdgeIndex, ResidueDirection)>`
+/// into `e40+e10-e20+e11+` format string.
+///
+pub fn update_info_to_string(info: &UpdateInfo) -> String {
+    info.iter()
+        .map(|(edge, dir)| format!("e{}{}", edge.index(), dir))
+        .join("")
+}
+
+/// Stringify `UpdateInfo = Vec<(EdgeIndex, ResidueDirection)>`
+/// into `e40+e10-e20+e11+` format string.
+///
+pub fn update_info_from_str(s: &str) -> Option<UpdateInfo> {
+    s.split_inclusive(&['+', '-'])
+        .map(|t| {
+            if let Some(x) = t.strip_prefix('e') {
+                if let Some(y) = x.strip_suffix('+') {
+                    if let Ok(z) = y.parse::<usize>() {
+                        Some((EdgeIndex::new(z), ResidueDirection::Up))
+                    } else {
+                        None
+                    }
+                } else if let Some(y) = x.strip_suffix('-') {
+                    if let Ok(z) = y.parse::<usize>() {
+                        Some((EdgeIndex::new(z), ResidueDirection::Down))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 // ///
 // /// summary of UpdateInfo
 // ///
@@ -936,5 +974,24 @@ mod tests {
         println!("{:?}", petgraph::dot::Dot::with_config(&rg, &[]));
         let c = find_negative_cycle_in_whole_graph(&rg, CycleDetectMethod::BellmanFord);
         println!("c={:?}", c);
+    }
+
+    #[test]
+    fn conversion_update_info_string() {
+        let info_a: UpdateInfo = vec![
+            (ei(5), ResidueDirection::Up),
+            (ei(2), ResidueDirection::Up),
+            (ei(3), ResidueDirection::Down),
+        ];
+        let info_b: UpdateInfo = vec![];
+        let info_c: UpdateInfo = vec![(ei(0), ResidueDirection::Up)];
+        assert_eq!(update_info_to_string(&info_a), "e5+e2+e3-");
+        assert_eq!(update_info_to_string(&info_b), "");
+        assert_eq!(update_info_to_string(&info_c), "e0+");
+
+        assert_eq!(update_info_from_str("e5+e2+e3-"), Some(info_a));
+        assert_eq!(update_info_from_str("ee5++e2+e3-"), None);
+        assert_eq!(update_info_from_str(""), Some(info_b));
+        assert_eq!(update_info_from_str("e0+"), Some(info_c));
     }
 }
