@@ -758,22 +758,13 @@ pub fn update_info_to_string(info: &UpdateInfo) -> String {
 pub fn update_info_from_str(s: &str) -> Option<UpdateInfo> {
     s.split_inclusive(&['+', '-'])
         .map(|t| {
-            if let Some(x) = t.strip_prefix('e') {
-                if let Some(y) = x.strip_suffix('+') {
-                    if let Ok(z) = y.parse::<usize>() {
-                        Some((EdgeIndex::new(z), ResidueDirection::Up))
-                    } else {
-                        None
-                    }
-                } else if let Some(y) = x.strip_suffix('-') {
-                    if let Ok(z) = y.parse::<usize>() {
-                        Some((EdgeIndex::new(z), ResidueDirection::Down))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
+            let t = t.strip_prefix('e')?;
+            if let Some(y) = t.strip_suffix('+') {
+                let z = y.parse::<usize>().ok()?;
+                Some((EdgeIndex::new(z), ResidueDirection::Up))
+            } else if let Some(y) = t.strip_suffix('-') {
+                let z = y.parse::<usize>().ok()?;
+                Some((EdgeIndex::new(z), ResidueDirection::Down))
             } else {
                 None
             }
