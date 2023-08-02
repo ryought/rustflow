@@ -58,7 +58,7 @@ use petgraph::graph::{DiGraph, EdgeIndex};
 use residue::{
     enumerate_neighboring_flows_in_residue, find_neighboring_flow_by_edge_change_in_residue,
     flow_to_residue_convex, improve_flow, improve_flow_convex, CycleDetectMethod, ResidueDirection,
-    UpdateInfo,
+    UpdateCycle,
 };
 use zero_demand::{find_initial_flow, is_zero_demand_flow_graph};
 // use convex::is_convex_cost_flow_graph;
@@ -221,14 +221,14 @@ where
 ///
 /// enumerate neighboring flows of current flow on MinFlowNetwork.
 ///
-/// `Flow` and `UpdateInfo = Vec<(EdgeIndex, ResidueDirection)>`
+/// `Flow` and `UpdateCycle = Vec<(EdgeIndex, ResidueDirection)>`
 ///
 pub fn enumerate_neighboring_flows<F, N, E>(
     graph: &DiGraph<N, E>,
     flow: &Flow<F>,
     max_depth: Option<usize>,
     max_flip: Option<usize>,
-) -> Vec<(Flow<F>, UpdateInfo)>
+) -> Vec<(Flow<F>, UpdateCycle)>
 where
     F: FlowRateLike,
     E: FlowEdge<F> + ConvexCost<F>,
@@ -252,7 +252,7 @@ pub fn find_neighboring_flow_by_edge_change<F, N, E, W>(
     edge: EdgeIndex,
     direction: ResidueDirection,
     weight: W,
-) -> Option<(Flow<F>, UpdateInfo)>
+) -> Option<(Flow<F>, UpdateCycle)>
 where
     F: FlowRateLike,
     E: FlowEdge<F> + ConvexCost<F>,

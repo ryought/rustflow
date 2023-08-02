@@ -323,10 +323,10 @@ pub fn residue_graph_cycle_to_flow<F: FlowRateLike>(
     flow: &Flow<F>,
     residue_graph: &ResidueGraph<F>,
     cycle_in_residue_graph: &[EdgeIndex],
-) -> (Flow<F>, UpdateInfo) {
+) -> (Flow<F>, UpdateCycle) {
     (
         apply_residual_edges_to_flow(flow, residue_graph, cycle_in_residue_graph),
-        cycle_in_residue_graph_into_update_info(residue_graph, cycle_in_residue_graph),
+        cycle_in_residue_graph_into_update_cycle(residue_graph, cycle_in_residue_graph),
     )
 }
 
@@ -427,7 +427,7 @@ pub fn enumerate_neighboring_flows_in_residue<F: FlowRateLike>(
     flow: &Flow<F>,
     max_cycle_size: Option<usize>,
     max_flip: Option<usize>,
-) -> Vec<(Flow<F>, UpdateInfo)> {
+) -> Vec<(Flow<F>, UpdateCycle)> {
     // println!("{:?}", petgraph::dot::Dot::with_config(&rg, &[]));
     let simple_cycles = match max_cycle_size {
         Some(k) => simple_k_cycles_with_cond(rg, k, |edges, edge| {
@@ -450,7 +450,7 @@ pub fn enumerate_neighboring_flows_in_residue<F: FlowRateLike>(
     let flows: Vec<_> = simple_cycles
         .into_iter()
         .map(|cycle| residue_graph_cycle_to_flow(flow, rg, cycle.edges()))
-        .filter(|(new_flow, _update_info)| new_flow != flow)
+        .filter(|(new_flow, _)| new_flow != flow)
         .collect();
     // eprintln!("# n_flows={}", flows.len());
     flows
@@ -496,7 +496,7 @@ pub fn find_neighboring_flow_by_edge_change_in_residue<F, W>(
     edge: EdgeIndex,
     direction: ResidueDirection,
     weight: W,
-) -> Option<(Flow<F>, UpdateInfo)>
+) -> Option<(Flow<F>, UpdateCycle)>
 where
     F: FlowRateLike,
     W: Fn(EdgeIndex) -> usize,
@@ -537,7 +537,7 @@ where
                     assert!(is_cycle(&rg, &edges));
                     assert!(is_edge_simple(&rg, &edges));
 
-                    // convert the cycle into flow and updateinfo
+                    // convert the cycle into flow and UpdateCycle
                     Some(residue_graph_cycle_to_flow(flow, rg, &edges))
                 }
                 None => None,
@@ -704,10 +704,10 @@ fn update_flow_in_residue_graph<F: FlowRateLike>(
     }
 }
 
-fn cycle_in_residue_graph_into_update_info<F: FlowRateLike>(
+fn cycle_in_residue_graph_into_update_cycle<F: FlowRateLike>(
     rg: &ResidueGraph<F>,
     cycle: &[EdgeIndex],
-) -> UpdateInfo {
+) -> UpdateCycle {
     cycle
         .iter()
         .map(|&e| {
@@ -737,25 +737,25 @@ pub fn improve_flow<F: FlowRateLike, N, E: FlowEdge<F> + ConstCost>(
 }
 
 ///
-/// `UpdateInfo` = `Vec<(EdgeIndex, ResidueDirection)>`
+/// `UpdateCycle` = `Vec<(EdgeIndex, ResidueDirection)>`
 ///
 /// information of updating a edge of either direction?
 ///
-pub type UpdateInfo = Vec<(EdgeIndex, ResidueDirection)>;
+pub type UpdateCycle = Vec<(EdgeIndex, ResidueDirection)>;
 
-/// Stringify `UpdateInfo = Vec<(EdgeIndex, ResidueDirection)>`
+/// Stringify `UpdateCycle = Vec<(EdgeIndex, ResidueDirection)>`
 /// into `e40+e10-e20+e11+` format string.
 ///
-pub fn update_info_to_string(info: &UpdateInfo) -> String {
+pub fn update_cycle_to_string(info: &UpdateCycle) -> String {
     info.iter()
         .map(|(edge, dir)| format!("e{}{}", edge.index(), dir))
         .join("")
 }
 
-/// Stringify `UpdateInfo = Vec<(EdgeIndex, ResidueDirection)>`
+/// Stringify `UpdateCycle = Vec<(EdgeIndex, ResidueDirection)>`
 /// into `e40+e10-e20+e11+` format string.
 ///
-pub fn update_info_from_str(s: &str) -> Option<UpdateInfo> {
+pub fn update_cycle_from_str(s: &str) -> Option<UpdateCycle> {
     s.split_inclusive(&['+', '-'])
         .map(|t| {
             let t = t.strip_prefix('e')?;
@@ -773,7 +773,7 @@ pub fn update_info_from_str(s: &str) -> Option<UpdateInfo> {
 }
 
 // ///
-// /// summary of UpdateInfo
+// /// summary of UpdateCycle
 // ///
 // pub type UpdateSummary = Vec<(Vec<EdgeIndex>, ResidueDirection)>;
 //
@@ -792,11 +792,11 @@ pub fn update_info_from_str(s: &str) -> Option<UpdateInfo> {
 
 /// create a new improved flow from current flow
 /// by upgrading along the negative weight cycle in the residual graph
-pub fn improve_flow_convex_with_update_info<F, N, E>(
+pub fn improve_flow_convex_with_update_cycle<F, N, E>(
     graph: &DiGraph<N, E>,
     flow: &Flow<F>,
     method: CycleDetectMethod,
-) -> Option<(Flow<F>, UpdateInfo)>
+) -> Option<(Flow<F>, UpdateCycle)>
 where
     F: FlowRateLike,
     E: FlowEdge<F> + ConvexCost<F>,
@@ -806,7 +806,7 @@ where
     match update_flow_in_residue_graph(flow, &rg, method) {
         Some((new_flow, cycle)) => Some((
             new_flow,
-            cycle_in_residue_graph_into_update_info(&rg, &cycle),
+            cycle_in_residue_graph_into_update_cycle(&rg, &cycle),
         )),
         None => None,
     }
@@ -968,21 +968,21 @@ mod tests {
     }
 
     #[test]
-    fn conversion_update_info_string() {
-        let info_a: UpdateInfo = vec![
+    fn conversion_update_cycle_string() {
+        let info_a: UpdateCycle = vec![
             (ei(5), ResidueDirection::Up),
             (ei(2), ResidueDirection::Up),
             (ei(3), ResidueDirection::Down),
         ];
-        let info_b: UpdateInfo = vec![];
-        let info_c: UpdateInfo = vec![(ei(0), ResidueDirection::Up)];
-        assert_eq!(update_info_to_string(&info_a), "e5+e2+e3-");
-        assert_eq!(update_info_to_string(&info_b), "");
-        assert_eq!(update_info_to_string(&info_c), "e0+");
+        let info_b: UpdateCycle = vec![];
+        let info_c: UpdateCycle = vec![(ei(0), ResidueDirection::Up)];
+        assert_eq!(update_cycle_to_string(&info_a), "e5+e2+e3-");
+        assert_eq!(update_cycle_to_string(&info_b), "");
+        assert_eq!(update_cycle_to_string(&info_c), "e0+");
 
-        assert_eq!(update_info_from_str("e5+e2+e3-"), Some(info_a));
-        assert_eq!(update_info_from_str("ee5++e2+e3-"), None);
-        assert_eq!(update_info_from_str(""), Some(info_b));
-        assert_eq!(update_info_from_str("e0+"), Some(info_c));
+        assert_eq!(update_cycle_from_str("e5+e2+e3-"), Some(info_a));
+        assert_eq!(update_cycle_from_str("ee5++e2+e3-"), None);
+        assert_eq!(update_cycle_from_str(""), Some(info_b));
+        assert_eq!(update_cycle_from_str("e0+"), Some(info_c));
     }
 }
